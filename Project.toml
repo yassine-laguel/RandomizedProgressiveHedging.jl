@@ -4,5 +4,4 @@ authors = ["Gilles <gilles.bareilles@gmail.com>"]
 version = "0.1.0"
 
 [deps]
-AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
