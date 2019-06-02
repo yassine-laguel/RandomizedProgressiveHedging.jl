@@ -2,22 +2,19 @@
 using Ipopt
 include("src/RPH.jl")
 include("src/testcases.jl")
+include("src/PH_direct.jl")
 
 function main()
     pb = makeproblem()
-    
-    model1 = Model(with_optimizer(Ipopt.Optimizer))
-    @variable model1 x
-    model1_obj = @NLexpression model1 (x-2)^2 + 1/3
-    @NLobjective model1 Min (x-2)^2 + 1/3
 
-    optimize!(model1)
-    @show value(x)
+    print(pb)
 
-    
-    model = Model(with_optimizer(Ipopt.Optimizer))
+    y_sol = PH_direct_solve(pb)
 
-
-    return pb
+    display(y_sol)
+    return y_sol
 end
+
+
+
 main()
