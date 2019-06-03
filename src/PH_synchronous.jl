@@ -44,12 +44,14 @@ function nonanticipatory_projection!(x, pb, y_scen, id_scen)
 end
 
 function PH_synchronous_solve(pb)
-    println("-----------------------------------------------------------------------------------------")
+    println("----------------------------")
     println("--- PH synchronous solve")
     
     # parameters
-    μ = 10
-    params = Dict()
+    μ = 3
+    params = Dict(
+        :print_step=>10
+    )
 
     # Variables
     nstages = pb.nstages
@@ -65,7 +67,7 @@ function PH_synchronous_solve(pb)
 
     it = 0.0
     oldit = 0
-    @printf " it   primal res       dual res            dot(x,u)   objective\n"
+    @printf " it   primal res        dual res            dot(x,u)   objective\n"
     while it < 50 * nscenarios
         for id_scen in 1:nscenarios
 
@@ -83,13 +85,16 @@ function PH_synchronous_solve(pb)
             objval = objective_value(pb, x)
             primres = norm(pb, x-y)
             dualres = (1/μ) * norm(pb, u - u_old)
+            dot_xu = dot(pb, x, u)
             
-            if it > oldit+1
-                @printf "%3i   %.10e %.10e   % .3e % .16e\n" it primres dualres dot(pb, x, u) objval
-                oldit += 1
+            if it > oldit + params[:print_step]
+                @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
+                oldit += params[:print_step]
             end
             
             it += 1/nscenarios
         end
     end
+
+    return x
 end

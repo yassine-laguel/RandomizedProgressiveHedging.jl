@@ -3,8 +3,6 @@ function Problem(scenarios::Vector{T}, probas::Vector{Float64}, stage_to_dim::Ve
     nstages = length(stagetoscenpart)
     scenariotree = ScenarioTree(stagetoscenpart)
 
-    @show scenarios
-
     return Problem(scenarios, probas, length(scenarios), nstages, stage_to_dim, scenariotree)
 end
 

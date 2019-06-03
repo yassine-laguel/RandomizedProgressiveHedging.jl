@@ -54,16 +54,20 @@ function main()
     y_sol = PH_direct_solve(pb)
     println("\nDirect solve output is:")
     display(y_sol)
+    println("")
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
     y_sol = PH_sequential_solve(pb)
     println("\nSequential solve output is:")
     display(y_sol)
+    println("")
 
-    # #########################################################
-    # ## Problem solve: synchronous (un parallelized) version of PH
-    # y_sol = PH_synchronous_solve(pb)
+    #########################################################
+    ## Problem solve: synchronous (un parallelized) version of PH
+    y_sol = PH_synchronous_solve(pb)
+    println("\nSynchronous solve output is:")
+    display(y_sol)
 
     return
 end

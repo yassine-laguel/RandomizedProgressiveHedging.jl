@@ -53,11 +53,14 @@ end
 
 
 function PH_sequential_solve(pb)
+    println("----------------------------")
     println("--- PH sequential solve")
     
     # parameters
     μ = 3
-    params = Dict()
+    params = Dict(
+        :print_step => 10
+    )
 
     # Variables
     nstages = pb.nstages
@@ -72,7 +75,10 @@ function PH_sequential_solve(pb)
     # nonanticipatory_projection!(x, pb, y)
 
     it = 0
-    while it < 50
+    @printf " it   primal res        dual res            dot(x,u)   objective\n"
+    while it < 100
+        u_old = u
+
         # Subproblem solves
         for id_scen in 1:nscenarios
             y[id_scen, :] = subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, params)
@@ -85,13 +91,16 @@ function PH_sequential_solve(pb)
         u += (1/μ) * (y-x)
 
         # invariants, indicators
-        println("* Iteration $it, dot(x,u) = ", dot(pb, x, u))
-        # @show dot(pb, x, u)     # should be 0
-        # display(y)
-        # display(x)
-        # display(u)
-        it += 1
+        objval = objective_value(pb, x)
+        primres = norm(pb, x-y)
+        dualres = (1/μ) * norm(pb, u - u_old)
+        dot_xu = dot(pb, x, u)
+        
+        if mod(it, params[:print_step]) == 0
+            @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
+        end
 
+        it += 1
     end
 
     return x
