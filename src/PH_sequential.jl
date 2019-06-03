@@ -72,13 +72,8 @@ function nonanticipatory_projection(pb::Problem, y::Matrix{Float64})
     return x
 end
 
-function nonanticipatory_projection!(x, pb, ys, s)
-    @assert false "TBD"
-end
-
 
 function PH_sequential_solve(pb)
-    println("-----------------------------------------------------------------------------------------")
     println("--- PH sequential solve")
     
     # parameters
@@ -111,12 +106,14 @@ function PH_sequential_solve(pb)
         u += (1/μ) * (y-x)
 
         # invariants, indicators
-        println("* Iteration $it")
-        @show dot(pb, x, u)     # should be 0
-        display(y)
-        display(x)
-        display(u)
+        println("* Iteration $it, dot(x,u) = ", dot(pb, x, u))
+        # @show dot(pb, x, u)     # should be 0
+        # display(y)
+        # display(x)
+        # display(u)
         it += 1
 
     end
+
+    return x
 end

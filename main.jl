@@ -4,6 +4,7 @@ include("src/RPH.jl")
 include("src/testcases.jl")
 include("src/PH_direct.jl")
 include("src/PH_sequential.jl")
+include("src/PH_synchronous.jl")
 
 function main()
     pb = makeproblem()
@@ -14,7 +15,9 @@ function main()
     display(y_sol)
 
 
-    y_sol = PH_sequential_solve(pb)
+    # y_sol = PH_sequential_solve(pb)
+
+    y_sol = PH_synchronous_solve(pb)
     # @show dot(pb, y_sol, y_sol)
 
     # y_proj = nonanticipatory_projection(pb, y_sol)

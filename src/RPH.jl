@@ -2,6 +2,7 @@
 
 using DataStructures, JuMP
 import Base.print
+import JuMP.objective_value
 
 ###############################################################################
 ## Scenario abstract type and functions definition
@@ -185,9 +186,30 @@ function getobjective(pb, x)
 
 end
 
+function objective_value(pb, x)
+    global_objective = 0
+    for id_scen in 1:pb.nscenarios
+        ## Layout JuMP problem with objective
+        model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+
+        y, obj, ctrref = build_fs_Cs!(model, pb.scenarios[id_scen], id_scen)
+        @objective(model, Min, obj)
+
+        ## Fix variables
+        for i in 1:size(y, 1)
+            fix(y[i], x[id_scen, i], force=true)
+        end
+        
+        ## Get objective value and constraint violation
+        optimize!(model)
+
+        global_objective += pb.probas[id_scen] * objective_value(model)
+    end
+    return global_objective
+end
+
 getfeas_nonant(pb, x) = @assert false "TBD"
 getfeas_trajinnerctr(pb, x) = @assert false "TBD"
-getobj(pb, x) = @assert false "TBD"
 
 function solution_summary(pb, x)
     @assert false "TBD"
