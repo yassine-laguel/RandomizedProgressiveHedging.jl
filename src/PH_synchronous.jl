@@ -1,7 +1,5 @@
 include("RPH.jl")
 include("PH_sequential.jl")
-using JuMP, Ipopt
-using Printf
 
 """
 nonanticipatory_projection!(x, pb, ys, s)

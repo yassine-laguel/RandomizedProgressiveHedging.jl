@@ -1,8 +1,4 @@
 include("RPH.jl")
-using LinearAlgebra
-using JuMP, Ipopt
-import LinearAlgebra.dot
-
 
 function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     n = pb.nstages
@@ -22,24 +18,6 @@ function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     y_new = JuMP.value.(y)
     return y_new
 end
-
-"""
-dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
-
-Compute the weighted scalar product between strategies `x` and `y`.
-"""
-function dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
-    @assert size(x) == size(y) "dot(): input matrices should have same size."
-    @assert length(pb.probas) == size(x, 1) "dot(): incompatible scenario probability and matrix x"
-    
-    res = 0
-    for i in 1:size(x, 1)
-        res += pb.probas[i] * dot(x[i, :], y[i, :])
-    end
-    return res
-end
-
-norm(pb::Problem, x) = sqrt(dot(pb, x, x))
 
 """
 nonanticipatory_projection!(x::Matrix{Float64}, pb::Problem, y::Matrix{Float64})
