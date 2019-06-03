@@ -18,6 +18,7 @@ function main()
     # y_sol = PH_sequential_solve(pb)
 
     y_sol = PH_synchronous_solve(pb)
+    
     # @show dot(pb, y_sol, y_sol)
 
     # y_proj = nonanticipatory_projection(pb, y_sol)

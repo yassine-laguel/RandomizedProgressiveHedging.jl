@@ -39,6 +39,7 @@ function dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
     return res
 end
 
+norm(pb::Problem, x) = sqrt(dot(pb, x, x))
 
 """
 nonanticipatory_projection!(x::Matrix{Float64}, pb::Problem, y::Matrix{Float64})
@@ -77,7 +78,7 @@ function PH_sequential_solve(pb)
     println("--- PH sequential solve")
     
     # parameters
-    μ = 1
+    μ = 3
     params = Dict()
 
     # Variables

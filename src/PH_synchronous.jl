@@ -1,12 +1,10 @@
 include("RPH.jl")
 include("PH_sequential.jl")
 using JuMP, Ipopt
-
+using Printf
 
 """
 nonanticipatory_projection!(x, pb, ys, s)
-
-
 """
 function nonanticipatory_projection!(x, pb, y_scen, id_scen)
     @assert size(x, 2) == size(y_scen, 1)
@@ -68,31 +66,31 @@ function PH_synchronous_solve(pb)
     # nonanticipatory_projection!(x, pb, y)
 
     it = 0.0
+    oldit = 0
+    @printf " it   primal res       dual res            dot(x,u)   objective\n"
     while it < 50 * nscenarios
-        # Subproblem solves
         for id_scen in 1:nscenarios
+
+            x_old = x
+            y_old = y
+            u_old = u
+
+            nonanticipatory_projection!(x, pb, x_old+u_old)
+
             y[id_scen, :] = subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, params)
             
-            # projection on non anticipatory subspace
-            x_check = nonanticipatory_projection(pb, y)
-            
-            ys = y[id_scen, :]
-            nonanticipatory_projection!(x, pb, ys, id_scen)
-            
-            # display(y)
-            # display(x_check)
-            # display(x)
-            # @assert false
-            
-            # multiplier update
-            u += (1/μ) * (y-x)
-            
+            u += -(1/μ) * (x-y)
+
             # invariants, indicators
-            println("* Iteration $it, obj val: ", objective_value(pb, x))
-            @show dot(pb, x, u)     # should be 0
-            display(y)
-            display(x)
-            display(u)
+            objval = objective_value(pb, x)
+            primres = norm(pb, x-y)
+            dualres = (1/μ) * norm(pb, u - u_old)
+            
+            if it > oldit+1
+                @printf "%3i   %.10e %.10e   % .3e % .16e\n" it primres dualres dot(pb, x, u) objval
+                oldit += 1
+            end
+            
             it += 1/nscenarios
         end
     end
