@@ -2,6 +2,7 @@
 
 using DataStructures
 using JuMP, Ipopt, LinearAlgebra
+using Distributions
 using Printf
 
 import Base.print

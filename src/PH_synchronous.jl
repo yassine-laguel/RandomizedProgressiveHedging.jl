@@ -83,6 +83,9 @@ function PH_synchronous_solve(pb)
         :max_iter=>30,
     )
 
+    scen_sampling_distrib = Categorical(pb.probas)
+    @show scen_sampling_distrib
+
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
@@ -100,7 +103,7 @@ function PH_synchronous_solve(pb)
     oldit = 0
     @printf " it   global residual   objective\n"
     while it < params[:max_iter] * nscenarios
-        id_scen = rand(1:nscenarios)
+        id_scen = rand(scen_sampling_distrib)
 
         ## Projection
         x = get_averagedtraj(pb, z, id_scen)
