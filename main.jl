@@ -18,7 +18,18 @@ function main()
     # y_sol = PH_sequential_solve(pb)
 
     y_sol = PH_synchronous_solve(pb)
+
+    # averaged_traj = zeros(3)
+    # y_in = y_sol .* 0 .+ 1
+    # y_in[1, :] .= 1
+    # y_in[2, :] .= 2
+    # y_in[3, :] .= 3
+    # display(y_in)
+    # get_averagedtraj!(averaged_traj, pb, y_in, 3)
+    # display(y_in)
+    # @show averaged_traj
     
+
     # @show dot(pb, y_sol, y_sol)
 
     # y_proj = nonanticipatory_projection(pb, y_sol)

@@ -1,34 +1,32 @@
 include("RPH.jl")
 include("PH_sequential.jl")
+using BenchmarkTools
 
 """
-nonanticipatory_projection!(x, pb, ys, s)
+get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
+
+Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
 """
-function nonanticipatory_projection!(x, pb, y_scen, id_scen)
-    @assert size(x, 2) == size(y_scen, 1)
+function get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
+    nstages = pb.nstages
+    n = sum(length.(pb.stage_to_dim))
+
+    averaged_traj = zeros(n)
     
     scentree = pb.scenariotree
     stage = 1
     id_curnode = scentree.idrootnode
 
     while stage <= scentree.depth
-        # println("-------- stage $stage, cur node is $id_curnode")
         ## Get scenarios, dimension for current stage
         scen_set = scentree.vecnodes[id_curnode].scenarioset
         stage_dims = pb.stage_to_dim[stage]
 
-        ## update x with average
-        averaged_subtraj = pb.probas[id_scen] * y_scen[stage_dims]
-        if length(scen_set) > 1
-            averaged_subtraj += sum(pb.probas[i] * x[i, stage_dims] for i in scen_set if i != id_scen)
-        end
-        averaged_subtraj ./= sum(pb.probas[i] for i in scen_set)
-        # for id_curscen in scen_set
-        #     x[id_curscen, stage_dims] = averaged_subtraj
-        # end
-        x[id_scen, stage_dims] = averaged_subtraj
+        ## update x section with average
+        averaged_traj[stage_dims] = sum(pb.probas[i] * z[i, stage_dims] for i in scen_set)
+        averaged_traj[stage_dims] /= sum(pb.probas[i] for i in scen_set)
 
-        ## Find node of following stage
+        ## find node of following stage
         stage += 1
         id_nextnode = nothing
         for id_child in scentree.vecnodes[id_curnode].childs
@@ -40,26 +38,59 @@ function nonanticipatory_projection!(x, pb, y_scen, id_scen)
         isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
         id_curnode = id_nextnode
     end
-    return 
+
+    return averaged_traj
 end
 
+"""
+PH_sync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
+
+Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`xz_scen`)' where 'f_s' is the cost function associated with 
+the scenario `id_scen`.
+"""
+function PH_sync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
+    n = sum(length.(pb.stage_to_dim))
+
+    ## Regalurized problem
+    model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+
+    # Get scenario objective function, build constraints in model
+    y, obj, ctrref = build_fs_Cs!(model, pb.scenarios[id_scen], id_scen)
+    
+    # Augmented lagragian subproblem full objective
+    obj += (1/2*μ) * sum((y[i] - xz_scen[i])^2 for i in 1:n) ## TODO: replace with more explicit formula for efficiency
+    @objective(model, Min, obj)
+    
+    optimize!(model)
+    
+    return JuMP.value.(y)
+end
+
+"""
+PH_synchronous_solve(pb)
+
+Run the Randomized Progressive Hedging scheme on problem `pb`.
+"""
 function PH_synchronous_solve(pb)
     println("----------------------------")
     println("--- PH synchronous solve")
+    println("----------------------------")
     
     # parameters
     μ = 3
     params = Dict(
-        :print_step=>10
+        :print_step=>5,
+        :max_iter=>30,
     )
 
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
+    n = sum(length.(pb.stage_to_dim))
 
-    y = zeros(Float64, nstages, nscenarios)
-    x = zeros(Float64, nstages, nscenarios)
-    u = zeros(Float64, nstages, nscenarios)
+    x = zeros(Float64, n)
+    y = zeros(Float64, n)
+    z = zeros(Float64, n, nscenarios)
     
     # Initialization
     # y = subproblems per scenario
@@ -67,34 +98,40 @@ function PH_synchronous_solve(pb)
 
     it = 0.0
     oldit = 0
-    @printf " it   primal res        dual res            dot(x,u)   objective\n"
-    while it < 50 * nscenarios
-        for id_scen in 1:nscenarios
+    @printf " it   global residual   objective\n"
+    while it < params[:max_iter] * nscenarios
+        id_scen = rand(1:nscenarios)
 
-            x_old = x
-            y_old = y
-            u_old = u
+        ## Projection
+        x = get_averagedtraj(pb, z, id_scen)
 
-            nonanticipatory_projection!(x, pb, x_old+u_old)
+        ## Subproblem solve
+        y = PH_sync_subpbsolve(pb, id_scen, 2*x-z[id_scen, :], μ, params)
 
-            y[id_scen, :] = subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, params)
+        ## Global variable update
+        z[id_scen, :] += (y - x)
+
+
+        # invariants, indicators, prints
+        if it > oldit + params[:print_step]
+
+            # @btime x_feas = nonanticipatory_projection($pb, $z)
+            x_feas = nonanticipatory_projection(pb, z)
+            objval = objective_value(pb, x_feas)
+            primres = norm(x-y)
             
-            u += -(1/μ) * (x-y)
-
-            # invariants, indicators
-            objval = objective_value(pb, x)
-            primres = norm(pb, x-y)
-            dualres = (1/μ) * norm(pb, u - u_old)
-            dot_xu = dot(pb, x, u)
-            
-            if it > oldit + params[:print_step]
-                @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
-                oldit += params[:print_step]
-            end
-            
-            it += 1/nscenarios
+            @printf "%3i   %.10e % .16e\n" it primres objval
+            oldit += params[:print_step]
         end
+        
+        it += 1/nscenarios
     end
 
-    return x
+    x_feas = nonanticipatory_projection(pb, z)
+    objval = objective_value(pb, x_feas)
+    primres = norm(x-y)
+    
+    @printf "%3i   %.10e % .16e\n" it primres objval
+
+    return x_feas
 end
