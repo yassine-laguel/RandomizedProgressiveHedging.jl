@@ -6,7 +6,7 @@ using Printf
 
 import Base.print
 import JuMP.objective_value
-import LinearAlgebra.dot
+import LinearAlgebra: dot, norm
 
 ###############################################################################
 ## Scenario abstract type and functions definition

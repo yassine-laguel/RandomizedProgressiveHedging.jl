@@ -1,7 +1,7 @@
 include("RPH.jl")
 
 function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
-    n = pb.nstages
+    n = sum(length.(pb.stage_to_dim))
     
     ## Regalurized problem
     model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
@@ -77,7 +77,7 @@ function PH_sequential_solve(pb)
     it = 0
     @printf " it   primal res        dual res            dot(x,u)   objective\n"
     while it < 100
-        u_old = u
+        u_old = copy(u)
 
         # Subproblem solves
         for id_scen in 1:nscenarios
