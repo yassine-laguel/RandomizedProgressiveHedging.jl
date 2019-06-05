@@ -1,7 +1,9 @@
 # module RPH
 
 using DataStructures
-using JuMP, Ipopt, LinearAlgebra
+using Ipopt, LinearAlgebra
+@everywhere using JuMP, Ipopt
+
 using Distributions
 using Printf
 
@@ -11,9 +13,9 @@ import LinearAlgebra: dot, norm
 
 ###############################################################################
 ## Scenario abstract type and functions definition
-abstract type AbstractScenario end
+@everywhere abstract type AbstractScenario end
 
-const ScenarioId = Int64
+@everywhere const ScenarioId = Int64
 
 """
     build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario)

@@ -1,16 +1,16 @@
-using Ipopt
+using Ipopt, Distributed
 include("src/RPH.jl")
 include("src/testcases.jl")
 include("src/PH_direct.jl")
 include("src/PH_sequential.jl")
 include("src/PH_synchronous.jl")
 
-struct MyScenario <: AbstractScenario
+@everywhere struct MyScenario <: AbstractScenario
     trajcenter::Vector{Float64}
 end
 
 
-function build_fs_Cs!(model::JuMP.Model, s::MySecondScenario, id_scen::ScenarioId)
+@everywhere function build_fs_Cs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
     n = length(s.trajcenter)
     
     y = @variable(model, [1:n], base_name="y_s$id_scen")

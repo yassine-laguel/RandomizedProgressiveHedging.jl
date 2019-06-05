@@ -2,17 +2,17 @@ include("RPH.jl")
 
 using LinearAlgebra
 
-struct MyScenario <: AbstractScenario
+@everywhere struct MyScenario <: AbstractScenario
     trajcenter::Vector{Float64}
 end
 
-struct MySecondScenario <: AbstractScenario
+@everywhere struct MySecondScenario <: AbstractScenario
     trajcenter::Vector{Float64}
     constraintbound::Float64
 end
 
 
-function build_fs_Cs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
+@everywhere function build_fs_Cs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
     n = length(s.trajcenter)
     y = @variable(model, [1:n], base_name="y_s$id_scen")
     
@@ -21,7 +21,7 @@ function build_fs_Cs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
     return y, objexpr, nothing
 end
 
-function build_fs_Cs!(model::JuMP.Model, s::MySecondScenario, id_scen::ScenarioId)
+@everywhere function build_fs_Cs!(model::JuMP.Model, s::MySecondScenario, id_scen::ScenarioId)
     n = length(s.trajcenter)
     y = @variable(model, [1:3], base_name="y_s$id_scen")
     

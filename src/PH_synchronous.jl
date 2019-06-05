@@ -93,7 +93,7 @@ function PH_synchronous_solve(pb)
 
     x = zeros(Float64, n)
     y = zeros(Float64, n)
-    z = zeros(Float64, n, nscenarios)
+    z = zeros(Float64, nscenarios, n)
     
     # Initialization
     # y = subproblems per scenario
