@@ -114,7 +114,7 @@ function PH_asynchronous_solve(pb)
     μ = 3.0
     params = Dict(
         :print_step=>1,
-        :max_iter=>300,
+        :max_iter=>200,
     )
     
     nstages = pb.nstages
@@ -124,7 +124,7 @@ function PH_asynchronous_solve(pb)
     qproba = ones(nscenarios) / nscenarios
     scen_sampling_distrib = Categorical(qproba)
 
-    c = 0.1
+    c = 0.6
     qmin = minimum(qproba)      
     τ = 1                       # Upper bound on delay
     η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
@@ -134,6 +134,8 @@ function PH_asynchronous_solve(pb)
     y = zeros(Float64, n)
     v = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
+
+    t_init = time()
     
 
     # Variables Initialization
@@ -177,13 +179,12 @@ function PH_asynchronous_solve(pb)
         ## Wait for a worker to complete its job
         ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
         while length(ready_workers) == 0
-            sleep(0.01)
-        
             ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
             # @show ready_workers
         end
         
         ## Get oldest worker id
+        # worker_to_launchit[w_id] = 0
         cur_worker = first(ready_workers)
         
         ## Collect result
@@ -214,6 +215,8 @@ function PH_asynchronous_solve(pb)
         
         ## send task to worker
         put!(work_channels[cur_worker], task)
+        worker_to_launchit[cur_worker] = it
+        worker_to_scen[cur_worker] = id_scen
 
         
         # invariants, indicators, prints
@@ -250,6 +253,8 @@ function PH_asynchronous_solve(pb)
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
     primres = 1e99
+
+    println("Computation time: ", time() - t_init)
     
     @printf "%3i   %.10e % .16e\n" it primres objval
 
