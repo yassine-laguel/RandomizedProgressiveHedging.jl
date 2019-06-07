@@ -1,16 +1,18 @@
 using Ipopt, Distributed
-include("src/RPH.jl")
-include("src/testcases.jl")
-include("src/PH_direct.jl")
-include("src/PH_sequential.jl")
-include("src/PH_synchronous.jl")
+include("../src/RPH.jl")
+include("../src/testcases.jl")
+include("../src/PH_direct.jl")
+include("../src/PH_sequential.jl")
+include("../src/PH_synchronous.jl")
+include("../src/PH_asynchronous.jl")
 
-@everywhere struct MyScenario <: AbstractScenario
+@everywhere struct SimpleExScenario <: AbstractScenario
     trajcenter::Vector{Float64}
+    constraintbound::Int
 end
 
 
-@everywhere function build_fs_Cs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
+@everywhere function build_fs_Cs!(model::JuMP.Model, s::SimpleExScenario, id_scen::ScenarioId)
     n = length(s.trajcenter)
     
     y = @variable(model, [1:n], base_name="y_s$id_scen")
@@ -28,9 +30,9 @@ function main()
     #########################################################
     ## Problem definition
 
-    scenario1 = MyScenario([1, 1, 1])
-    scenario2 = MyScenario([2, 2, 2])
-    scenario3 = MyScenario([3, 3, 3])
+    scenario1 = SimpleExScenario([1, 1, 1], 3)
+    scenario2 = SimpleExScenario([2, 2, 2], 3)
+    scenario3 = SimpleExScenario([3, 3, 3], 3)
 
     # stage to scenario partition
     stageid_to_scenpart = [
@@ -67,6 +69,12 @@ function main()
     ## Problem solve: synchronous (un parallelized) version of PH
     y_sol = PH_synchronous_solve(pb)
     println("\nSynchronous solve output is:")
+    display(y_sol)
+
+    #########################################################
+    ## Problem solve: asynchronous (parallelized) version of PH
+    y_sol = PH_asynchronous_solve(pb)
+    println("ASynchronous solve output is:")
     display(y_sol)
 
     return
