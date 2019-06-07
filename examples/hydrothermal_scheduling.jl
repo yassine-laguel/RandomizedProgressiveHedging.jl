@@ -47,15 +47,16 @@ function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::Scena
     p = [Y[3+3*k] for k in 0:n-1]
 
     ## State variables constraints
-    @constraint(model, Y[:] .>= 0)
-    @constraint(model, x .<= W)
-    @constraint(model, p .+ y .>= D)
+    @constraint(model, Y[:] .>= 0)      # positivity constraint
+    @constraint(model, x .<= W)         # reservoir max capacity
+    @constraint(model, p .+ y .>= D)    # meet demand
     
     ## Dynamic constraints
-    @constraint(model, x[1] >= mean(rain) - y[1])
-    @constraint(model, [i=2:n], x[i] >= x[i-1] - y[i] + rain[stage_to_rainlevel[i]])
+    @constraint(model, x[1] == mean(rain) - y[1])
+    @constraint(model, [t=2:n], x[t] == x[t-1] - y[t] + rain[stage_to_rainlevel[t]])
     
-    objexpr = C*sum(p)
+    objexpr = C*sum(p) + sum(y)
+    ## NOTE: term in y are not present in original objective, but enforce unicity of solution, enabling comparison of solutions
 
     return Y, objexpr, nothing
 end
@@ -84,8 +85,6 @@ function build_hydrothermal_problem(; nstages = 5)
         stageid_to_scenpart[stage] = part
     end
 
-    @show Base.summarysize(stageid_to_scenpart)
-
     probas = ones(nscenarios) / nscenarios
     dim_to_subspace = [1+3*i:3*(i+1) for i in 0:nstages-1]
 
@@ -102,30 +101,34 @@ end
 
 
 function main()
-    pb = build_hydrothermal_problem(nstages = 4)
+    nstages = 5
+    pb = build_hydrothermal_problem(nstages = nstages)
 
     println("Full problem is:")
     println(pb)
 
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    y_sol = PH_direct_solve(pb)
+    y_direct = PH_direct_solve(pb)
     println("\nDirect solve output is:")
-    display(y_sol)
+    display(y_direct)
     println("")
 
-    # #########################################################
-    # ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    # y_sol = PH_sequential_solve(pb)
-    # println("\nSequential solve output is:")
-    # display(y_sol)
-    # println("")
+    #########################################################
+    ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
+    y_PH = PH_sequential_solve(pb)
+    println("\nSequential solve output is:")
+    display(y_PH)
+    println("")
 
-    # #########################################################
-    # ## Problem solve: synchronous (un parallelized) version of PH
-    # y_sol = PH_synchronous_solve(pb)
-    # println("\nSynchronous solve output is:")
-    # display(y_sol)
+    #########################################################
+    ## Problem solve: synchronous (un parallelized) version of PH
+    y_synch = PH_synchronous_solve(pb)
+    println("\nSynchronous solve output is:")
+    display(y_synch)
+
+    @show norm(y_direct - y_PH)
+    @show norm(y_direct - y_synch)
 
     return
 end

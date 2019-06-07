@@ -1,5 +1,5 @@
 include("RPH.jl")
-using JuMP
+using JuMP, GLPK
 
 """
 PH_direct_solve(pb::Problem)
@@ -8,7 +8,7 @@ Build the progressive hedging problem by explicitly laying out
 non-anticipatory constrants, and solve globally. 
 """
 function PH_direct_solve(pb::Problem)
-    model = Model(with_optimizer(Ipopt.Optimizer))
+    model = Model(with_optimizer(GLPK.Optimizer))
 
     ## Collect subproblems
     scen_to_vars = SortedDict()
