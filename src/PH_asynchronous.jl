@@ -124,9 +124,9 @@ function PH_asynchronous_solve(pb)
     qproba = ones(nscenarios) / nscenarios
     scen_sampling_distrib = Categorical(qproba)
 
-    c = 0.6
+    c = 0.9
     qmin = minimum(qproba)      
-    τ = 1                       # Upper bound on delay
+    τ = 100                       # Upper bound on delay
     η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
     
     # Variables
@@ -183,7 +183,7 @@ function PH_asynchronous_solve(pb)
             # @show ready_workers
         end
         
-        ## Get oldest worker id
+        ## Get oldest worker id TODO
         # worker_to_launchit[w_id] = 0
         cur_worker = first(ready_workers)
         

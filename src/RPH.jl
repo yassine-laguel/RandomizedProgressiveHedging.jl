@@ -2,6 +2,7 @@
 
 using DataStructures
 using Ipopt, LinearAlgebra
+using Distributed
 @everywhere using JuMP, Ipopt
 
 using Distributions
