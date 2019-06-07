@@ -65,10 +65,11 @@ function PH_sequential_solve(pb)
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
+    n = sum(length.(pb.stage_to_dim))
 
-    y = zeros(Float64, nstages, nscenarios)
-    x = zeros(Float64, nstages, nscenarios)
-    u = zeros(Float64, nstages, nscenarios)
+    y = zeros(Float64, nscenarios, n)
+    x = zeros(Float64, nscenarios, n)
+    u = zeros(Float64, nscenarios, n)
     
     # Initialization
     # y = subproblems per scenario
