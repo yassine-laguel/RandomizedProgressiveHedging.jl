@@ -40,7 +40,7 @@ function PH_direct_solve(pb::Problem)
     ## Optimization and solution
     optimize!(model)
     
-    y_sol = zeros(sum(length.(pb.stage_to_dim)), pb.nscenarios)
+    y_sol = zeros(pb.nscenarios, sum(length.(pb.stage_to_dim)))
     for (id_scen, vars) in scen_to_vars
         y_sol[id_scen, :] = JuMP.value.(vars)
     end

@@ -36,7 +36,7 @@ function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::Scena
     rain = [2, 10]
 
     # Convert weathertype::Int into stage to rain level
-    stage_to_rainlevel = int_to_bindec(s.weathertype, s.nstages-1) .+1
+    stage_to_rainlevel = int_to_bindec(s.weathertype, s.nstages) .+1
 
     n = s.nstages
     Y = @variable(model, [1:3*n], base_name="y_s$id_scen")
@@ -53,7 +53,7 @@ function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::Scena
     
     ## Dynamic constraints
     @constraint(model, x[1] >= mean(rain) - y[1])
-    @constraint(model, [i=2:n-1], x[i] >= x[i-1] - y[i] + rain[stage_to_rainlevel[i]])
+    @constraint(model, [i=2:n], x[i] >= x[i-1] - y[i] + rain[stage_to_rainlevel[i]])
     
     objexpr = C*sum(p)
 
@@ -66,7 +66,7 @@ function build_hydrothermal_problem(; nstages = 5)
 
     scenarios = Array{HydroThermalScenario}(undef, nscenarios)
     for s in 1:nscenarios
-        scenarios[s] = HydroThermalScenario(s-1, nstages-1)
+        scenarios[s] = HydroThermalScenario(s-1, nstages)
     end
 
     stageid_to_scenpart = Array{OrderedSet{BitSet}}(undef, nstages)
@@ -102,7 +102,7 @@ end
 
 
 function main()
-    pb = build_hydrothermal_problem()
+    pb = build_hydrothermal_problem(nstages = 4)
 
     println("Full problem is:")
     println(pb)
@@ -114,18 +114,18 @@ function main()
     display(y_sol)
     println("")
 
-    #########################################################
-    ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    y_sol = PH_sequential_solve(pb)
-    println("\nSequential solve output is:")
-    display(y_sol)
-    println("")
+    # #########################################################
+    # ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
+    # y_sol = PH_sequential_solve(pb)
+    # println("\nSequential solve output is:")
+    # display(y_sol)
+    # println("")
 
-    #########################################################
-    ## Problem solve: synchronous (un parallelized) version of PH
-    y_sol = PH_synchronous_solve(pb)
-    println("\nSynchronous solve output is:")
-    display(y_sol)
+    # #########################################################
+    # ## Problem solve: synchronous (un parallelized) version of PH
+    # y_sol = PH_synchronous_solve(pb)
+    # println("\nSynchronous solve output is:")
+    # display(y_sol)
 
     return
 end
