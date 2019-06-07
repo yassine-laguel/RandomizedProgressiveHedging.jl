@@ -1,5 +1,7 @@
 using Distributed, DataStructures
 
+# addprocs(["aph@www.iutzeler.org"], tunnel=true, dir="/home/aph", exename="/home/aph/julia-1.1.1/bin/julia", topology=:master_worker)
+
 # The worker task function waits for incoming integers and
 # sleeps for that many seconds, until -1 is received
 @everywhere function do_work(work::RemoteChannel, res::RemoteChannel)
