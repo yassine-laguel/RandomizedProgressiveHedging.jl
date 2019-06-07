@@ -5,7 +5,7 @@ using JuMP, GLPK
 PH_direct_solve(pb::Problem)
 
 Build the progressive hedging problem by explicitly laying out
-non-anticipatory constrants, and solve globally. 
+non-anticipatory constraints, and solve globally. 
 """
 function PH_direct_solve(pb::Problem)
     model = Model(with_optimizer(GLPK.Optimizer))

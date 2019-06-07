@@ -94,7 +94,7 @@ function ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
                 id_father == nothing && @error "Invalid scenario inclusion at depth $cur_depth"
             end
 
-            ## Allocate current node
+            ## Write current node
             vecnodes[id_nextnode] = STreeNode(id_father, childs, ur)
             
             ## Reference current node as child of id_father

@@ -53,30 +53,34 @@ function main()
 
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    y_sol = PH_direct_solve(pb)
+    y_direct = PH_direct_solve(pb)
     println("\nDirect solve output is:")
-    display(y_sol)
+    display(y_direct)
     println("")
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    y_sol = PH_sequential_solve(pb)
+    y_PH = PH_sequential_solve(pb)
     println("\nSequential solve output is:")
-    display(y_sol)
+    display(y_PH)
     println("")
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_sol = PH_synchronous_solve(pb)
+    y_synch = PH_synchronous_solve(pb)
     println("\nSynchronous solve output is:")
-    display(y_sol)
-
+    display(y_synch)
+    
     #########################################################
     ## Problem solve: asynchronous (parallelized) version of PH
-    y_sol = PH_asynchronous_solve(pb)
+    y_asynch = PH_asynchronous_solve(pb)
     println("ASynchronous solve output is:")
-    display(y_sol)
+    display(y_asynch)
 
+    @show norm(y_direct - y_PH)
+    @show norm(y_direct - y_synch)
+    @show norm(y_direct - y_asynch)
+    
     return
 end
 

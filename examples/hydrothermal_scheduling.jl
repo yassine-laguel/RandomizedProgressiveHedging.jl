@@ -88,14 +88,12 @@ function build_hydrothermal_problem(; nstages = 5)
     probas = ones(nscenarios) / nscenarios
     dim_to_subspace = [1+3*i:3*(i+1) for i in 0:nstages-1]
 
-    pb = Problem(
+    return Problem(
         scenarios,
         probas,
         dim_to_subspace,
         stageid_to_scenpart
     )
-
-    return pb
 end
 
 
@@ -134,9 +132,3 @@ function main()
 end
 
 main()
-
-# model = JuMP.Model()
-# id_scen = 3
-# s = HydroThermalScenario(id_scen-1, 5)
-
-# @time build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
