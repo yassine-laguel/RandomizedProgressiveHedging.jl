@@ -1,6 +1,4 @@
-include("RPH.jl")
-include("PH_sequential.jl")
-using BenchmarkTools, Distributed
+# include("RPH.jl")
 
 """
 get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
@@ -10,9 +8,10 @@ Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
 function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
     nstages = pb.nstages
     n = sum(length.(pb.stage_to_dim))
-
+    
     averaged_traj = zeros(n)
     
+    try
     scentree = pb.scenariotree
     stage = 1
     id_curnode = scentree.idrootnode
@@ -39,57 +38,64 @@ function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
         id_curnode = id_nextnode
     end
 
+    catch e
+        println(e)
+    end
+
     return averaged_traj
 end
 
 
 
 
-@everywhere struct SubproblemTask{T}
+struct SubproblemTask{T}
     scenario::T
     id_scenario::ScenarioId
+    build_subpb::Function
     μ::Float64
     v_scen::Vector{Float64}
 end
 
 """
-PH_sync_subpbsolve(pb::Problem, id_scen::ScenarioId, v_scen, μ, params)
+do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with 
 the scenario `id_scen`.
 """
-
-@everywhere function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
+function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
+    println("Worker...")
     while true
-        t0 = time()
-        # println(round(time()-t0, sigdigits=2), "\tWaiting for work...")
-        subpbtask::SubproblemTask = take!(inwork)
-        # println(round(time()-t0, sigdigits=2), "\t... Got job rel. to scenario $(subpbtask.id_scenario).")
-
-        if subpbtask.id_scenario == -1
-            # Work finished
-            println(round(time()-t0, sigdigits=3), "\tI am done!")
-            return
-        end
-
-        # do work
-        model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
-        
-        # Get scenario objective function, build constraints in model
-        y, obj, ctrref = build_fs_Cs!(model, subpbtask.scenario, subpbtask.id_scenario)
-        
-        obj += (1/2*subpbtask.μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
-        
-        @objective(model, Min, obj)
-
-        sleep(0.05)
-    
         try
+
+            t0 = time()
+            # println(round(time()-t0, sigdigits=2), "\tWaiting for work...")
+            subpbtask::SubproblemTask = take!(inwork)
+            # println(round(time()-t0, sigdigits=2), "\t... Got job rel. to scenario $(subpbtask.id_scenario).")
+
+            if subpbtask.id_scenario == -1
+                # Work finished
+                println(round(time()-t0, sigdigits=3), "\tI am done!")
+                return
+            end
+
+            # do work
+            model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+            
+            # Get scenario objective function, build constraints in model
+            y, obj, ctrref = subpbtask.build_subpb(model, subpbtask.scenario, subpbtask.id_scenario)
+            
+            obj += (1/2*subpbtask.μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
+            
+            @objective(model, Min, obj)
+
+            sleep(0.05)
+        
             optimize!(model)
 
             put!(outres, JuMP.value.(y))        
             # println(round(time()-t0, sigdigits=3), "\tI finished work")
         catch e
+            println("Worker error:")
             println(e)
         end
     end
@@ -98,14 +104,14 @@ end
 
 
 """
-PH_synchronous_solve(pb)
+solve_randomized_sync(pb)
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 """
-function PH_asynchronous_solve(pb)
-    println("----------------------------")
-    println("--- PH asynchronous solve")
-    println("----------------------------")
+function solve_randomized_async(pb)
+    println("--------------------------------------------------------")
+    println("--- Randomized Progressive Hedging - asynchronous")
+    println("--------------------------------------------------------")
     println()
     println("Available workers: ", workers())
     nworkers = length(workers())
@@ -161,6 +167,7 @@ function PH_asynchronous_solve(pb)
         task = SubproblemTask(
             pb.scenarios[id_scen],
             id_scen,
+            pb.build_subpb,
             μ,
             v,
         )
@@ -209,6 +216,7 @@ function PH_asynchronous_solve(pb)
         task = SubproblemTask(
             pb.scenarios[id_scen],
             id_scen,
+            pb.build_subpb,
             μ,
             v,
         )
@@ -238,6 +246,7 @@ function PH_asynchronous_solve(pb)
     closing_task = SubproblemTask(
         pb.scenarios[1],
         -1,                 ## Stop signal
+        pb.build_subpb,
         μ,
         v,
     )

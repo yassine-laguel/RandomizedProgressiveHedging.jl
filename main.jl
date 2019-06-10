@@ -1,26 +1,20 @@
 # using RPH
-using Ipopt
-include("src/RPH.jl")
-include("src/testcases.jl")
-include("src/PH_direct.jl")
-include("src/PH_sequential.jl")
-include("src/PH_synchronous.jl")
-include("src/PH_asynchronous.jl")
+using RPH
 
 function main()
     pb = makeproblem()
 
     print(pb)
 
-    # y_sol = PH_direct_solve(pb)
+    # y_sol = solve_direct(pb)
     # display(y_sol)
 
 
-    # y_sol = PH_sequential_solve(pb)
+    # y_sol = solve_progressivehedging(pb)
 
-    # y_sol = PH_synchronous_solve(pb)
+    # y_sol = solve_randomized_sync(pb)
 
-    y_sol = PH_asynchronous_solve(pb)
+    y_sol = solve_randomized_async(pb)
 
     # averaged_traj = zeros(3)
     # y_in = y_sol .* 0 .+ 1

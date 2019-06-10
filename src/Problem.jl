@@ -1,9 +1,9 @@
-function Problem(scenarios::Vector{T}, probas::Vector{Float64}, stage_to_dim::Vector{UnitRange{Int}}, stagetoscenpart::Vector{OrderedSet{BitSet}}) where T<:AbstractScenario
+function Problem(scenarios::Vector{T}, buildsubpb::Function, probas::Vector{Float64}, stage_to_dim::Vector{UnitRange{Int}}, stagetoscenpart::Vector{OrderedSet{BitSet}}) where T<:AbstractScenario
 
     nstages = length(stagetoscenpart)
     scenariotree = ScenarioTree(stagetoscenpart)
 
-    return Problem(scenarios, probas, length(scenarios), nstages, stage_to_dim, scenariotree)
+    return Problem(scenarios, buildsubpb, probas, length(scenarios), nstages, stage_to_dim, scenariotree)
 end
 
 function Base.show(io::IO, pb::Problem)
@@ -21,7 +21,7 @@ function objective_value(pb, x)
         ## Layout JuMP problem with objective
         model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
 
-        y, obj, ctrref = build_fs_Cs!(model, pb.scenarios[id_scen], id_scen)
+        y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
         @objective(model, Min, obj)
 
         ## Fix variables

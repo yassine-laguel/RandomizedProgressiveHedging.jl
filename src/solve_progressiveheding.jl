@@ -1,4 +1,4 @@
-include("RPH.jl")
+# include("RPH.jl")
 
 function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     n = sum(length.(pb.stage_to_dim))
@@ -7,7 +7,7 @@ function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
 
     # Get scenario objective function, build constraints in model
-    y, obj, ctrref = build_fs_Cs!(model, pb.scenarios[id_scen], id_scen)
+    y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
     
     # Augmented lagragian subproblem full objective
     obj += dot(u_scen, y) + (1/2*μ) * sum((y[i]-x_scen[i])^2 for i in 1:n)
@@ -52,9 +52,10 @@ function nonanticipatory_projection(pb::Problem, y::Matrix{Float64})
 end
 
 
-function PH_sequential_solve(pb)
-    println("----------------------------")
-    println("--- PH sequential solve")
+function solve_progressivehedging(pb)
+    println("--------------------------------------------------------")
+    println("--- Progressive Hedging - sequential")
+    println("--------------------------------------------------------")
     
     # parameters
     μ = 3

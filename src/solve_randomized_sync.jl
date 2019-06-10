@@ -1,6 +1,5 @@
-include("RPH.jl")
-include("PH_sequential.jl")
-using BenchmarkTools
+# include("RPH.jl")
+# include("PH_sequential.jl")
 
 """
 get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
@@ -55,7 +54,7 @@ function PH_sync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, param
     model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
 
     # Get scenario objective function, build constraints in model
-    y, obj, ctrref = build_fs_Cs!(model, pb.scenarios[id_scen], id_scen)
+    y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
     
     # Augmented lagragian subproblem full objective
     obj += (1/2*μ) * sum((y[i] - xz_scen[i])^2 for i in 1:n) ## TODO: replace with more explicit formula for efficiency
@@ -67,14 +66,14 @@ function PH_sync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, param
 end
 
 """
-PH_synchronous_solve(pb)
+solve_randomized_sync(pb)
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 """
-function PH_synchronous_solve(pb)
-    println("----------------------------")
-    println("--- PH synchronous solve")
-    println("----------------------------")
+function solve_randomized_sync(pb)
+    println("--------------------------------------------------------")
+    println("--- Randomized Progressive Hedging - synchronous")
+    println("--------------------------------------------------------")
     
     # parameters
     μ = 3

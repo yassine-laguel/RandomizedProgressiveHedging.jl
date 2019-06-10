@@ -1,9 +1,9 @@
-# module RPH
+module RPH
 
 using DataStructures
-using Ipopt, LinearAlgebra
+using LinearAlgebra
 using Distributed
-@everywhere using JuMP, Ipopt
+using JuMP, Ipopt, GLPK
 
 using Distributions
 using Printf
@@ -14,16 +14,18 @@ import LinearAlgebra: dot, norm
 
 ###############################################################################
 ## Scenario abstract type and functions definition
-@everywhere abstract type AbstractScenario end
+# @everywhere abstract type AbstractScenario end
+abstract type AbstractScenario end
 
-@everywhere const ScenarioId = Int64
+# @everywhere const ScenarioId = Int64
+ScenarioId = Int64
 
 """
-    build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario)
+    build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario, id_scen::ScenarioId)
 
 Append to the model objctive and constraints associated to `scenario`.
 """
-build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario) = error("build_fs_Cs!(): unsupported scenrio type $(typeof(scenario))")
+# build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario, id_scen::ScenarioId)= error("build_fs_Cs!(): unsupported scenario type $(typeof(scenario)).\nAvalable methods:$(methods(build_fs_Cs!))")
 
 
 ###############################################################################
@@ -51,6 +53,7 @@ include("ScenarioTree.jl")
 # - stages takes values from 1 to nstages
 struct Problem{T}
     scenarios::Vector{T}
+    build_subpb::Function
     probas::Vector{Float64}
     nscenarios::Int
     nstages::Int
@@ -60,4 +63,15 @@ end
 
 include("Problem.jl")
 
-# end
+## Solvers
+include("solve_direct.jl")
+include("solve_progressiveheding.jl")
+include("solve_randomized_sync.jl")
+include("solve_randomized_async.jl")
+
+export AbstractScenario, ScenarioId, Problem
+export solve_direct, solve_progressivehedging, solve_randomized_sync, solve_randomized_async
+
+## Test problems
+
+end
