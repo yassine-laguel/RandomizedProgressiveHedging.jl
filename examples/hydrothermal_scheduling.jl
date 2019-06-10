@@ -1,15 +1,25 @@
 ## Hydrothermal scheduling example, see [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf), l. cambier
-include("../src/RPH.jl")
-include("../src/PH_direct.jl")
-include("../src/PH_sequential.jl")
-include("../src/PH_synchronous.jl")
+# @everywhere include("../src/RPH.jl")
+# using RPH
+using Distributed
+
+@everywhere using Pkg; 
+Pkg.activate(".")
+fetch(@spawn Pkg.activate("."))
+@everywhere Pkg.status()
+sleep(2)
+
+
+using DataStructures, JuMP, LinearAlgebra
+@everywhere using RPH, JuMP
 
 """
 int_to_bindec(s::Int, decomplength::Int)
 
 Compute the vector of the `decomplength` bits of the base 2 representation of `s`, from strongest to weakest.
 """
-function int_to_bindec(s::Int, decomplength::Int)
+
+@everywhere function int_to_bindec(s::Int, decomplength::Int)
     expo_to_val = zeros(Int, decomplength)
     for i in 0:decomplength-1
         expo_to_val[decomplength-i] = mod(floor(Int, s / 2^i), 2)
@@ -19,17 +29,19 @@ function int_to_bindec(s::Int, decomplength::Int)
 end
 
 
-struct HydroThermalScenario <: AbstractScenario
+@everywhere struct HydroThermalScenario <: RPH.AbstractScenario
     weathertype::Int    # Int whose base 2 decomposition holds stage to rain level info.
     nstages::Int
 end
 
-"""
-build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
+# """
+# build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
 
-Build the subproblem associated to a `HydroThermalScenario` scenario, as specified in [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf).
-"""
-function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
+# Build the subproblem associated to a `HydroThermalScenario` scenario, as specified in [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf).
+# """
+
+
+@everywhere function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
     C = 5
     W = 8
     D = 6
@@ -52,7 +64,7 @@ function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::Scena
     @constraint(model, p .+ y .>= D)    # meet demand
     
     ## Dynamic constraints
-    @constraint(model, x[1] == mean(rain) - y[1])
+    @constraint(model, x[1] == sum(rain)/length(rain) - y[1])
     @constraint(model, [t=2:n], x[t] == x[t-1] - y[t] + rain[stage_to_rainlevel[t]])
     
     objexpr = C*sum(p) + sum(y)
@@ -90,9 +102,10 @@ function build_hydrothermal_problem(; nstages = 5)
 
     return Problem(
         scenarios,
+        build_fs_Cs!,
         probas,
         dim_to_subspace,
-        stageid_to_scenpart
+        stageid_to_scenpart,
     )
 end
 
@@ -105,28 +118,36 @@ function main()
     println("Full problem is:")
     println(pb)
 
-    #########################################################
-    ## Problem solve: build and solve complete problem, exponential in constraints
-    y_direct = PH_direct_solve(pb)
-    println("\nDirect solve output is:")
-    display(y_direct)
-    println("")
+    # #########################################################
+    # ## Problem solve: build and solve complete problem, exponential in constraints
+    # y_direct = solve_direct(pb)
+    # println("\nDirect solve output is:")
+    # display(y_direct)
+    # println("")
 
-    #########################################################
-    ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    y_PH = PH_sequential_solve(pb)
-    println("\nSequential solve output is:")
-    display(y_PH)
-    println("")
+    # #########################################################
+    # ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
+    # y_PH = solve_progressivehedging(pb)
+    # println("\nSequential solve output is:")
+    # display(y_PH)
+    # println("")
 
+    # #########################################################
+    # ## Problem solve: synchronous (un parallelized) version of PH
+    # y_synch = solve_randomized_sync(pb)
+    # println("\nSynchronous solve output is:")
+    # display(y_synch)
+    
     #########################################################
-    ## Problem solve: synchronous (un parallelized) version of PH
-    y_synch = PH_synchronous_solve(pb)
-    println("\nSynchronous solve output is:")
-    display(y_synch)
+    ## Problem solve: asynchronous (parallelized) version of PH
 
-    @show norm(y_direct - y_PH)
-    @show norm(y_direct - y_synch)
+    y_asynch = solve_randomized_async(pb)
+    println("ASynchronous solve output is:")
+    display(y_asynch)
+
+    # @show norm(y_direct - y_PH)
+    # @show norm(y_direct - y_synch)
+    # @show norm(y_direct - y_asynch)
 
     return
 end

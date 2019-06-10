@@ -1,10 +1,7 @@
-using Ipopt, Distributed
-include("../src/RPH.jl")
-include("../src/testcases.jl")
-include("../src/PH_direct.jl")
-include("../src/PH_sequential.jl")
-include("../src/PH_synchronous.jl")
-include("../src/PH_asynchronous.jl")
+using JuMP, DataStructures
+# using Distributed
+# @everywhere using RPH
+using Distributed
 
 @everywhere struct SimpleExScenario <: AbstractScenario
     trajcenter::Vector{Float64}
@@ -16,9 +13,7 @@ end
     n = length(s.trajcenter)
     
     y = @variable(model, [1:n], base_name="y_s$id_scen")
-    
     objexpr = sum((y[i] - s.trajcenter[i])^2 for i in 1:n)
-    
     ctrref = @constraint(model, y .<= s.constraintbound)
     
     return y, objexpr, ctrref
@@ -53,27 +48,27 @@ function main()
 
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    y_direct = PH_direct_solve(pb)
+    y_direct = solve_direct(pb)
     println("\nDirect solve output is:")
     display(y_direct)
     println("")
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    y_PH = PH_sequential_solve(pb)
+    y_PH = solve_progressivehedging(pb)
     println("\nSequential solve output is:")
     display(y_PH)
     println("")
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_synch = PH_synchronous_solve(pb)
+    y_synch = solve_randomized_sync(pb)
     println("\nSynchronous solve output is:")
     display(y_synch)
     
     #########################################################
     ## Problem solve: asynchronous (parallelized) version of PH
-    y_asynch = PH_asynchronous_solve(pb)
+    y_asynch = solve_randomized_async(pb)
     println("ASynchronous solve output is:")
     display(y_asynch)
 

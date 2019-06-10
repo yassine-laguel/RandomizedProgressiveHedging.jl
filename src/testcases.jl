@@ -1,6 +1,4 @@
-include("RPH.jl")
-
-using LinearAlgebra
+# include("RPH.jl")
 
 @everywhere struct MyScenario <: AbstractScenario
     trajcenter::Vector{Float64}
