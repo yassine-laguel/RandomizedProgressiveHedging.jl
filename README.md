@@ -5,7 +5,7 @@ Randomized Progressive Hedging.
 ## Installation
 
 ```julia
-]add https://github.com/yassine-laguel/RPH.jl#dev_gilles
+]add https://github.com/yassine-laguel/RPH.jl#master
 ]instantiate
 ]activate .
 ```
@@ -19,6 +19,8 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 - What initialization for x: 0, subpbs solutions ?
 - Interfaces with JuMP world packages : StructJuMP ?
 - What print info / log info ?
+- Discuss stopping criteria
+- Discuss algo parameters (upper delay bound, ...)
 
 ## TODOs
 
@@ -34,4 +36,3 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 ### Random
 - [ ] For fair comparison with RPH, make PH subpb computation also distributed.
 - [ ] Clean up code, stick to paper notations
-
