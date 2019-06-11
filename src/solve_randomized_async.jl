@@ -84,8 +84,6 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
             
             @objective(model, Min, obj)
 
-            sleep(0.05)
-        
             optimize!(model)
 
             put!(outres, JuMP.value.(y))        
