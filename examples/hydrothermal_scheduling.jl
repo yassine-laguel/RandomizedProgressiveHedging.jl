@@ -129,11 +129,11 @@ function main()
     display(y_PH)
     println("")
 
-    #########################################################
-    ## Problem solve: synchronous (un parallelized) version of PH
-    y_synch = solve_randomized_sync(pb)
-    println("\nSynchronous solve output is:")
-    display(y_synch)
+    # #########################################################
+    # ## Problem solve: synchronous (un parallelized) version of PH
+    # y_synch = solve_randomized_sync(pb)
+    # println("\nSynchronous solve output is:")
+    # display(y_synch)
     
     #########################################################
     ## Problem solve: asynchronous (parallelized) version of PH
