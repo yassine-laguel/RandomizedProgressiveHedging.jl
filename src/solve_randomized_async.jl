@@ -108,13 +108,18 @@ solve_randomized_sync(pb)
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 """
-function solve_randomized_async(pb)
+function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     println("--------------------------------------------------------")
     println("--- Randomized Progressive Hedging - asynchronous")
     println("--------------------------------------------------------")
     println()
     println("Available workers: ", workers())
     nworkers = length(workers())
+
+    if workers() == Vector([1])
+        @error "No workers available. Returning"
+        return zeros(1, 1).-1
+    end
     
     # parameters
     μ = 3.0
@@ -123,6 +128,9 @@ function solve_randomized_async(pb)
         :max_iter=>200,
     )
     
+    ## need workers() -> 1:nworkers map for x matrix
+    worker_to_wid = SortedDict{Int, Int}(worker=>wid for (wid, worker) in enumerate(workers()))
+
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = sum(length.(pb.stage_to_dim))
@@ -149,7 +157,7 @@ function solve_randomized_async(pb)
     # nonanticipatory_projection!(x, pb, y)
 
     ## Workers Initialization
-    work_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{SubproblemTask}(3), worker_id) for worker_id in workers())
+    work_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{SubproblemTask{T}}(3), worker_id) for worker_id in workers())
     results_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Vector{Float64}}(3), worker_id) for worker_id in workers())
     
     worker_to_scen = OrderedDict{Int, ScenarioId}()
@@ -204,14 +212,14 @@ function solve_randomized_async(pb)
 
         
         ## z update
-        step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[cur_worker-1, :])
+        step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[worker_to_wid[cur_worker], :])
         z[id_scen, :] += step
         
         ## Draw new scenario for worker, build v and task
         id_scen = rand(scen_sampling_distrib)
         
-        x[cur_worker-1, :] = get_averagedtraj(pb, z, id_scen)
-        v = 2*x[cur_worker-1, :] - z[id_scen, :]
+        x[worker_to_wid[cur_worker], :] = get_averagedtraj(pb, z, id_scen)
+        v = 2*x[worker_to_wid[cur_worker], :] - z[id_scen, :]
         
         task = SubproblemTask(
             pb.scenarios[id_scen],
