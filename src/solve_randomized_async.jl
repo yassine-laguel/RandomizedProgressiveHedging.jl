@@ -64,13 +64,9 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
     while true
         try
             t0 = time()
-            # println(round(time()-t0, sigdigits=2), "\tWaiting for work...")
             subpbtask::SubproblemTask = take!(inwork)
-            # println(round(time()-t0, sigdigits=2), "\t... Got job rel. to scenario $(subpbtask.id_scenario).")
 
-            if subpbtask.id_scenario == -1
-                # Work finished
-                # println(round(time()-t0, sigdigits=3), "\tI am done!")
+            if subpbtask.id_scenario == -1  # Work finished
                 return
             end
 
@@ -87,7 +83,6 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
             optimize!(model)
 
             put!(outres, JuMP.value.(y))        
-            # println(round(time()-t0, sigdigits=3), "\tI finished work")
         catch e
             println("Worker error:")
             println(e)
@@ -148,6 +143,7 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     params = Dict(
         :print_step=>10,
         :max_iter=>800,
+        :step_tol=>1e-4,
     )
     
     nstages = pb.nstages
@@ -166,6 +162,7 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     x = zeros(Float64, nworkers, n)
     step = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
+    steplength = Inf
 
     t_init = time()
     
@@ -203,7 +200,7 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
 
     it = 0
     @printf "\n it    global residual   objective\n"
-    while it < params[:max_iter]
+    while !(steplength < params[:step_tol]) && it < params[:max_iter]
 
         ## Wait for a worker to complete its job
         ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
@@ -242,14 +239,13 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         worker_to_launchit[cur_worker] = it
         worker_to_scen[cur_worker] = id_scen
 
-        
+        steplength = norm(step)
         # invariants, indicators, prints
         if mod(it, params[:print_step]) == 0
             x_feas = nonanticipatory_projection(pb, z)
             objval = objective_value(pb, x_feas)
-            primres = norm(step)
             
-            @printf "%3i    %.10e % .16e\n" it primres objval
+            @printf "%3i    %.10e % .16e\n" it steplength objval
         end
         
         it += 1
@@ -258,9 +254,8 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     ## Get final solution
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
-    primres = norm(step)
     
-    @printf "%3i    %.10e % .16e\n" it primres objval
+    @printf "%3i    %.10e % .16e\n" it steplength objval
     println("Computation time: ", time() - t_init)
     
     ## Terminate all workers

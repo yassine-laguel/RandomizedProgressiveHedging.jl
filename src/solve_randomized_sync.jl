@@ -75,8 +75,9 @@ function solve_randomized_sync(pb)
     # parameters
     μ = 3
     params = Dict(
-        :print_step=>5,
-        :max_iter=>200,
+        :print_step=>10,
+        :max_iter=>400,
+        :step_tol=>1e-4,
     )
 
     nstages = pb.nstages
@@ -86,19 +87,19 @@ function solve_randomized_sync(pb)
     qproba = ones(nscenarios) / nscenarios
     scen_sampling_distrib = Categorical(pb.probas)
 
-    
+
     # Optim Variables
     x = zeros(Float64, n)
     y = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
+    steplength = Inf
     
     # Initialization
     # z = subproblems per scenario
 
-    it = 0.0
-    oldit = 0
+    it = 0
     @printf " it   global residual   objective\n"
-    while it < params[:max_iter]
+    while !(steplength < params[:step_tol]) && it < params[:max_iter]
         id_scen = rand(scen_sampling_distrib)
 
         ## Projection
@@ -112,23 +113,23 @@ function solve_randomized_sync(pb)
 
 
         # invariants, indicators, prints
-        if it > oldit + params[:print_step]
+        if mod(it, params[:print_step]) == 0
             x_feas = nonanticipatory_projection(pb, z)
             objval = objective_value(pb, x_feas)
-            primres = norm(x-y)
+            steplength = norm(x-y)
             
-            @printf "%3i   %.10e % .16e\n" it primres objval
-            oldit += params[:print_step]
+            @printf "%3i   %.10e % .16e\n" it steplength objval
         end
         
         it += 1
     end
 
+    ## Final print
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
-    primres = norm(x-y)
+    steplength = norm(x-y)
     
-    @printf "%3i   %.10e % .16e\n" it primres objval
+    @printf "%3i   %.10e % .16e\n" it steplength objval
 
     return x_feas
 end

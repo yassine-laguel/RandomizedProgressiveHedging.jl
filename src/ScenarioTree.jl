@@ -2,9 +2,14 @@ isroot(n::STreeNode) = isnothing(n.father)
 isleaf(n::STreeNode) = length(n.childs) == 0
 
 function print(io::IO, tree::ScenarioTree)
-    for (node_id, node) in enumerate(tree.vecnodes)
-        print("$node_id\t", node, "\n")
+    if length(tree.vecnodes) < 30
+        for (node_id, node) in enumerate(tree.vecnodes)
+            print(io, "$node_id\t", node, "\n")
+        end
+    else
+        print(io, "Scenario tree with $(length(tree.vecnodes)) nodes, depth $(tree.depth).")
     end
+    return
 end
 
 """
