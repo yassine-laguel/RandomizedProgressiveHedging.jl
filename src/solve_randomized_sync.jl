@@ -1,6 +1,3 @@
-# include("RPH.jl")
-# include("PH_sequential.jl")
-
 """
 get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
 
@@ -79,28 +76,29 @@ function solve_randomized_sync(pb)
     μ = 3
     params = Dict(
         :print_step=>5,
-        :max_iter=>30,
+        :max_iter=>200,
     )
 
-    scen_sampling_distrib = Categorical(pb.probas)
-
-    # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = sum(length.(pb.stage_to_dim))
+    
+    qproba = ones(nscenarios) / nscenarios
+    scen_sampling_distrib = Categorical(pb.probas)
 
+    
+    # Optim Variables
     x = zeros(Float64, n)
     y = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
     
     # Initialization
-    # y = subproblems per scenario
-    # nonanticipatory_projection!(x, pb, y)
+    # z = subproblems per scenario
 
     it = 0.0
     oldit = 0
     @printf " it   global residual   objective\n"
-    while it < params[:max_iter] * nscenarios
+    while it < params[:max_iter]
         id_scen = rand(scen_sampling_distrib)
 
         ## Projection
@@ -115,8 +113,6 @@ function solve_randomized_sync(pb)
 
         # invariants, indicators, prints
         if it > oldit + params[:print_step]
-
-            # @btime x_feas = nonanticipatory_projection($pb, $z)
             x_feas = nonanticipatory_projection(pb, z)
             objval = objective_value(pb, x_feas)
             primres = norm(x-y)
@@ -125,7 +121,7 @@ function solve_randomized_sync(pb)
             oldit += params[:print_step]
         end
         
-        it += 1/nscenarios
+        it += 1
     end
 
     x_feas = nonanticipatory_projection(pb, z)

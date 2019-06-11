@@ -1,5 +1,3 @@
-# include("RPH.jl")
-
 """
 get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
 
@@ -101,10 +99,38 @@ end
 
 
 
+function init_workers(pb::Problem{T}) where T<:AbstractScenario
+    work_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{SubproblemTask{T}}(3), worker_id) for worker_id in workers())
+    results_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Vector{Float64}}(3), worker_id) for worker_id in workers())
+    
+    printstyled("Launching remotecalls... ", color=:red)
+    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, worker_id, work_channels[worker_id], results_channels[worker_id]) for worker_id in workers())
+    printstyled("Done.\n", color=:red)
+    return work_channels, results_channels, remotecalls_futures
+end
+
+function terminate_workers(pb, work_channels, remotecalls_futures)
+    closing_task = SubproblemTask(
+        pb.scenarios[1],
+        -1,                 ## Stop signal
+        isnothing,
+        0.0,
+        [0.0],
+    )
+    for (w_id, worker_wkchan) in work_channels
+        put!(worker_wkchan, closing_task)
+    end
+
+    for (w_id, worker) in remotecalls_futures
+        wait(worker)
+    end
+    return
+end
+
 """
 solve_randomized_sync(pb)
 
-Run the Randomized Progressive Hedging scheme on problem `pb`.
+Run the Randomized Progressive Hedging scheme on problem `pb`. All workers should be available.
 """
 function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     println("--------------------------------------------------------")
@@ -126,9 +152,6 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         :max_iter=>800,
     )
     
-    ## need workers() -> 1:nworkers map for x matrix
-    worker_to_wid = SortedDict{Int, Int}(worker=>wid for (wid, worker) in enumerate(workers()))
-
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = sum(length.(pb.stage_to_dim))
@@ -140,11 +163,10 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     qmin = minimum(qproba)      
     τ = ceil(Int, nworkers*1.1)                       # Upper bound on delay
     η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
-    
-    # Variables
+
+    # Optim. variables
     x = zeros(Float64, nworkers, n)
-    y = zeros(Float64, n)
-    v = zeros(Float64, n)
+    step = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
 
     t_init = time()
@@ -155,15 +177,11 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     # nonanticipatory_projection!(x, pb, y)
 
     ## Workers Initialization
-    work_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{SubproblemTask{T}}(3), worker_id) for worker_id in workers())
-    results_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Vector{Float64}}(3), worker_id) for worker_id in workers())
-    
+    work_channels, results_channels, remotecalls_futures = init_workers(pb)
+
     worker_to_scen = OrderedDict{Int, ScenarioId}()
     worker_to_launchit = OrderedDict{Int, ScenarioId}()
-    
-    printstyled("Launching remotecalls...\n", color=:red)
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, worker_id, work_channels[worker_id], results_channels[worker_id]) for worker_id in workers())
-    printstyled("Done.\n", color=:red)
+    worker_to_wid = SortedDict{Int, Int}(worker=>wid for (wid, worker) in enumerate(workers())) # workers() -> 1:nworkers map for x matrix
 
     ## Feeding every worker with one task
     for w_id in workers()
@@ -175,7 +193,7 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
             id_scen,
             pb.build_subpb,
             μ,
-            v,
+            zeros(n),
         )
 
         worker_to_scen[w_id] = id_scen
@@ -195,9 +213,9 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
             ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
         end
         
-        ## Get oldest worker id TODO
-        # worker_to_launchit[w_id] = 0
-        cur_worker = first(ready_workers)
+        ## Get oldest worker id
+        worker_to_delay = SortedDict(w_id=>it-worker_to_launchit[w_id] for w_id in ready_workers)
+        cur_worker = argmax(worker_to_delay)
         
         ## Collect result
         y = take!(results_channels[cur_worker])
@@ -229,7 +247,6 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         
         # invariants, indicators, prints
         if mod(it, params[:print_step]) == 0
-            
             x_feas = nonanticipatory_projection(pb, z)
             objval = objective_value(pb, x_feas)
             primres = norm(step)
@@ -239,33 +256,18 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         
         it += 1
     end
-
-    ## Terminate all workers
-    printstyled("\nTerminating nodes...\n", color=:red)
-
-    closing_task = SubproblemTask(
-        pb.scenarios[1],
-        -1,                 ## Stop signal
-        pb.build_subpb,
-        μ,
-        v,
-    )
-    for (w_id, worker_wkchan) in work_channels
-        put!(worker_wkchan, closing_task)
-    end
-
-    for (w_id, worker) in remotecalls_futures
-        wait(worker)
-    end
-
-
+    
+    ## Get final solution
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
-    primres = 1e99
-
+    primres = norm(step)
+    
+    @printf "%3i    %.10e % .16e\n" it primres objval
     println("Computation time: ", time() - t_init)
     
-    @printf "%3i   %.10e % .16e\n" it primres objval
+    ## Terminate all workers
+    printstyled("\nTerminating nodes...\n", color=:red)
+    terminate_workers(pb, work_channels, remotecalls_futures)
 
     return x_feas
 end

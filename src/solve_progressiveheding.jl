@@ -1,5 +1,3 @@
-# include("RPH.jl")
-
 function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     n = sum(length.(pb.stage_to_dim))
     

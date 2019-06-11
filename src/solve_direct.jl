@@ -1,6 +1,3 @@
-# include("RPH.jl")
-# using JuMP, GLPK
-
 """
 solve_direct(pb::Problem)
 
@@ -14,6 +11,7 @@ function solve_direct(pb::Problem, solver = with_optimizer(Ipopt.Optimizer))
 
     model = Model(solver)
 
+    println("Building global model...")
     ## Collect subproblems
     scen_to_vars = SortedDict()
     scen_to_obj = SortedDict()
@@ -30,6 +28,7 @@ function solve_direct(pb::Problem, solver = with_optimizer(Ipopt.Optimizer))
     @objective(model, Min, sum(proba_s * scen_to_obj[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
 
     ## Non anticipatory constraints
+    println("Laying out nonanticipatory constraints...")
     depth_to_part = get_partitionbydepth(pb.scenariotree)
     for (depth, partition) in enumerate(depth_to_part)
         for subset in partition
@@ -42,7 +41,9 @@ function solve_direct(pb::Problem, solver = with_optimizer(Ipopt.Optimizer))
     end
 
     ## Optimization and solution
+    print("Opimization... ")
     optimize!(model)
+    println("Done.")
     
     y_sol = zeros(pb.nscenarios, sum(length.(pb.stage_to_dim)))
     for (id_scen, vars) in scen_to_vars

@@ -14,18 +14,9 @@ import LinearAlgebra: dot, norm
 
 ###############################################################################
 ## Scenario abstract type and functions definition
-# @everywhere abstract type AbstractScenario end
 abstract type AbstractScenario end
 
-# @everywhere const ScenarioId = Int64
 ScenarioId = Int64
-
-"""
-    build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario, id_scen::ScenarioId)
-
-Append to the model objctive and constraints associated to `scenario`.
-"""
-# build_fs_Cs!(model::JuMP.Model, scenario::AbstractScenario, id_scen::ScenarioId)= error("build_fs_Cs!(): unsupported scenario type $(typeof(scenario)).\nAvalable methods:$(methods(build_fs_Cs!))")
 
 
 ###############################################################################
