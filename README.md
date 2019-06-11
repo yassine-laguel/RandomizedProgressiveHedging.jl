@@ -36,3 +36,6 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 ### Random
 - [ ] For fair comparison with RPH, make PH subpb computation also distributed.
 - [ ] Clean up code, stick to paper notations
+
+- [ ] make hydro parametric on branching nb
+- [ ] make module function building n-ary tree
