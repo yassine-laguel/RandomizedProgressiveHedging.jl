@@ -63,10 +63,8 @@ Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' whe
 the scenario `id_scen`.
 """
 function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
-    println("Worker...")
     while true
         try
-
             t0 = time()
             # println(round(time()-t0, sigdigits=2), "\tWaiting for work...")
             subpbtask::SubproblemTask = take!(inwork)
@@ -74,7 +72,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
 
             if subpbtask.id_scenario == -1
                 # Work finished
-                println(round(time()-t0, sigdigits=3), "\tI am done!")
+                # println(round(time()-t0, sigdigits=3), "\tI am done!")
                 return
             end
 
@@ -124,8 +122,8 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
     # parameters
     μ = 3.0
     params = Dict(
-        :print_step=>1,
-        :max_iter=>200,
+        :print_step=>10,
+        :max_iter=>800,
     )
     
     ## need workers() -> 1:nworkers map for x matrix
@@ -140,7 +138,7 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
 
     c = 0.9
     qmin = minimum(qproba)      
-    τ = 100                       # Upper bound on delay
+    τ = ceil(Int, nworkers*1.1)                       # Upper bound on delay
     η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
     
     # Variables
@@ -195,7 +193,6 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
         while length(ready_workers) == 0
             ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
-            # @show ready_workers
         end
         
         ## Get oldest worker id TODO
@@ -206,11 +203,6 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         y = take!(results_channels[cur_worker])
         id_scen = worker_to_scen[cur_worker]
 
-        # printstyled("Current worker: $cur_worker\n", color=:red)
-        # printstyled("scenario      : $id_scen\n", color=:red)
-        # printstyled("output        : $y\n", color=:red)
-
-        
         ## z update
         step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[worker_to_wid[cur_worker], :])
         z[id_scen, :] += step
