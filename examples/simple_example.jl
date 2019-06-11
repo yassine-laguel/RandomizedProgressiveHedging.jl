@@ -1,17 +1,21 @@
-using JuMP, DataStructures
+using DataStructures, GLPK, LinearAlgebra
 # using Distributed
 # @everywhere using RPH
 using Distributed
+
+@everywhere using Pkg
+@everywhere Pkg.activate(".")
+@everywhere Pkg.status()
+@everywhere using JuMP, RPH
 
 @everywhere struct SimpleExScenario <: AbstractScenario
     trajcenter::Vector{Float64}
     constraintbound::Int
 end
 
-
 @everywhere function build_fs_Cs!(model::JuMP.Model, s::SimpleExScenario, id_scen::ScenarioId)
     n = length(s.trajcenter)
-    
+
     y = @variable(model, [1:n], base_name="y_s$id_scen")
     objexpr = sum((y[i] - s.trajcenter[i])^2 for i in 1:n)
     ctrref = @constraint(model, y .<= s.constraintbound)
@@ -38,6 +42,7 @@ function main()
 
     pb = Problem(
         [scenario1, scenario2, scenario3],  # scenarios array
+        build_fs_Cs!,
         [0.5, 0.25, 0.25],                  # scenario probabilities
         [1:1, 2:2, 3:3],                    # stage id to trajectory coordinates, required for projection
         stageid_to_scenpart                 # stage to scenario partition
@@ -48,6 +53,7 @@ function main()
 
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
+    solver = 
     y_direct = solve_direct(pb)
     println("\nDirect solve output is:")
     display(y_direct)

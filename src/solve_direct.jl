@@ -7,12 +7,12 @@ solve_direct(pb::Problem)
 Build the progressive hedging problem by explicitly laying out
 non-anticipatory constraints, and solve globally. 
 """
-function solve_direct(pb::Problem)
+function solve_direct(pb::Problem, solver = with_optimizer(Ipopt.Optimizer))
     println("--------------------------------------------------------")
     println("--- Direct solve")
     println("--------------------------------------------------------")
 
-    model = Model(with_optimizer(GLPK.Optimizer))
+    model = Model(solver)
 
     ## Collect subproblems
     scen_to_vars = SortedDict()

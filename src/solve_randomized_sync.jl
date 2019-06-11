@@ -83,7 +83,6 @@ function solve_randomized_sync(pb)
     )
 
     scen_sampling_distrib = Categorical(pb.probas)
-    @show scen_sampling_distrib
 
     # Variables
     nstages = pb.nstages
