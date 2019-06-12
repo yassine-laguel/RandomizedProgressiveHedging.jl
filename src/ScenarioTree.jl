@@ -2,7 +2,7 @@ isroot(n::STreeNode) = isnothing(n.father)
 isleaf(n::STreeNode) = length(n.childs) == 0
 
 function print(io::IO, tree::ScenarioTree)
-    if length(tree.vecnodes) < 30
+    if length(tree.vecnodes) < 65
         for (node_id, node) in enumerate(tree.vecnodes)
             print(io, "$node_id\t", node, "\n")
         end
@@ -122,8 +122,8 @@ ScenarioTree(; depth::Int, nbranching::Int)
 Build a scenario tree of given `depth`, and node degree `nbranching`.
 """
 function ScenarioTree(; depth::Int, nbranching::Int)
-    nnodes = Int((nbranching^(depth+1)-1) / (nbranching-1))
-    nscenarios = nbranching^depth
+    nnodes = Int((nbranching^(depth)-1) / (nbranching-1))
+    nscenarios = nbranching^(depth-1)
 
     vecnodes = Vector{RPH.STreeNode}(undef, nnodes)
     
@@ -131,7 +131,7 @@ function ScenarioTree(; depth::Int, nbranching::Int)
     ind_node_prevdepth::RPH.STreeNodeId = 1
     ind_node_curdepth::RPH.STreeNodeId = 2
 
-    for cur_depth in 2:depth+1
+    for cur_depth in 2:depth
         ## build cur_depth depth nodes, reference childs of cur_depth-1  nodes.        
         # nnode_curdepth = nbranching^cur_depth
         ind_start_curdepth::RPH.STreeNodeId = ind_node_curdepth

@@ -36,8 +36,6 @@ end
 
 # Build the subproblem associated to a `HydroThermalScenario` scenario, as specified in [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf).
 # """
-
-
 @everywhere function build_fs_Cs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
     C = 5
     W = 8
@@ -107,10 +105,35 @@ function build_hydrothermal_problem(; nstages = 5)
 end
 
 
+function build_hydrothermal_problem_vscenario(; nstages = 5)
+    nbranching = 2
+    nscenarios = 2^(nstages-1)
+
+    scenarios = Array{HydroThermalScenario}(undef, nscenarios)
+    for s in 1:nscenarios
+        scenarios[s] = HydroThermalScenario(s-1, nstages)
+    end
+
+    scenariotree = ScenarioTree(; depth=nstages, nbranching=2)
+
+    probas = ones(nscenarios) / nscenarios
+    dim_to_subspace = [1+3*i:3*(i+1) for i in 0:nstages-1]
+
+    return Problem(
+        scenarios,
+        build_fs_Cs!,
+        probas,
+        nscenarios, 
+        nstages,
+        dim_to_subspace,
+        scenariotree
+    )
+end
 
 function main()
     nstages = 5
-    pb = build_hydrothermal_problem(nstages = nstages)
+    # pb = build_hydrothermal_problem(nstages = nstages)
+    pb = build_hydrothermal_problem_vscenario(nstages = nstages)
 
     println("Full problem is:")
     println(pb)
@@ -155,10 +178,10 @@ function main()
     
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    # y_direct = solve_direct(pb, with_optimizer(GLPK.Optimizer))
-    # println("\nDirect solve output is:")
-    # display(y_direct)
-    # println("")
+    y_direct = solve_direct(pb, with_optimizer(GLPK.Optimizer))
+    println("\nDirect solve output is:")
+    display(y_direct)
+    println("")
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
