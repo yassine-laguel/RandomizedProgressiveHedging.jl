@@ -1,7 +1,63 @@
 # using RPH
 using RPH
 
+function toto(; depth::Int, nbranching::Int)
+    nnodes = Int((nbranching^(depth+1)-1) / (nbranching-1))
+    nscenarios = nbranching^depth
+
+    vecnodes = Vector{RPH.STreeNode}(undef, nnodes)
+    
+    vecnodes[1] = RPH.STreeNode(nothing, Int[], 1:nscenarios)
+    ind_node_prevdepth::RPH.STreeNodeId = 1
+    ind_node_curdepth::RPH.STreeNodeId = 2
+
+    for cur_depth in 2:depth+1
+        ## build cur_depth depth nodes, reference childs of cur_depth-1  nodes.        
+        # nnode_curdepth = nbranching^cur_depth
+        ind_start_curdepth::RPH.STreeNodeId = ind_node_curdepth
+
+        while ind_node_prevdepth < ind_start_curdepth
+
+            ## split scenario set into nbranching equivalent subsets
+            fatherscenarioset = vecnodes[ind_node_prevdepth].scenarioset
+            m, M = fatherscenarioset.start, fatherscenarioset.stop
+            subsetlength = Int((M-m+1) / nbranching)
+            
+            ## populate this node childs, reference in father
+            cur_stop = m-1
+            for ind_child in 0:nbranching-1
+                cur_start = cur_stop + 1
+                cur_stop = cur_start + subsetlength-1
+                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop)
+            end
+            vecnodes[ind_node_prevdepth].childs = Vector{RPH.STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1)
+            
+            ind_node_prevdepth += 1
+            ind_node_curdepth += nbranching
+        end
+    end
+    
+    return vecnodes
+end
+
+function profile_test(n)
+    for i = 1:n
+        st = toto(depth=10, nbranching=5)
+    end
+end
+
+
+
+
 function main()
+    ## binary tree with depth 20 takes 1.3 seconds, 174 MiB RAM
+    ## binary tree with depth 20 takes 0.22 seconds, 174 MiB RAM
+    # toto(depth=20, nbranching=2)
+
+    @time st = ScenarioTree(; depth=20, nbranching=2)
+    
+    return Base.summarysize(st) / 2^20
+
     pb = makeproblem()
 
     print(pb)
