@@ -23,7 +23,7 @@ ScenarioId = Int64
 ## Scenario tree
 const STreeNodeId = Int32
 
-struct STreeNode
+mutable struct STreeNode
     father::Union{STreeNodeId, Nothing}
     childs::Vector{STreeNodeId}
     scenarioset::UnitRange{ScenarioId}
@@ -60,7 +60,7 @@ include("solve_progressiveheding.jl")
 include("solve_randomized_sync.jl")
 include("solve_randomized_async.jl")
 
-export AbstractScenario, ScenarioId, Problem
+export AbstractScenario, ScenarioId, Problem, ScenarioTree
 export solve_direct, solve_progressivehedging, solve_randomized_sync, solve_randomized_async
 
 ## Test problems

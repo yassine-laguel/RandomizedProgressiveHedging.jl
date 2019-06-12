@@ -115,3 +115,47 @@ function ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
 
     return ScenarioTree(vecnodes, 1, length(stagetoscenpart))
 end
+
+"""
+ScenarioTree(; depth::Int, nbranching::Int)
+
+Build a scenario tree of given `depth`, and node degree `nbranching`.
+"""
+function ScenarioTree(; depth::Int, nbranching::Int)
+    nnodes = Int((nbranching^(depth+1)-1) / (nbranching-1))
+    nscenarios = nbranching^depth
+
+    vecnodes = Vector{RPH.STreeNode}(undef, nnodes)
+    
+    vecnodes[1] = RPH.STreeNode(nothing, Int[], 1:nscenarios)
+    ind_node_prevdepth::RPH.STreeNodeId = 1
+    ind_node_curdepth::RPH.STreeNodeId = 2
+
+    for cur_depth in 2:depth+1
+        ## build cur_depth depth nodes, reference childs of cur_depth-1  nodes.        
+        # nnode_curdepth = nbranching^cur_depth
+        ind_start_curdepth::RPH.STreeNodeId = ind_node_curdepth
+
+        while ind_node_prevdepth < ind_start_curdepth
+
+            ## split scenario set into nbranching equivalent subsets
+            fatherscenarioset = vecnodes[ind_node_prevdepth].scenarioset
+            m, M = fatherscenarioset.start, fatherscenarioset.stop
+            subsetlength = Int((M-m+1) / nbranching)
+            
+            ## populate this node childs, reference in father
+            cur_stop = m-1
+            for ind_child in 0:nbranching-1
+                cur_start = cur_stop + 1
+                cur_stop = cur_start + subsetlength-1
+                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop)
+            end
+            vecnodes[ind_node_prevdepth].childs = Vector{RPH.STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1)
+            
+            ind_node_prevdepth += 1
+            ind_node_curdepth += nbranching
+        end
+    end
+    
+    return ScenarioTree(vecnodes, 1, depth)
+end
