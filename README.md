@@ -33,9 +33,11 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 - [ ] Run experiments and present nice figures/plots
 - [ ] Package the code
 
-### Random
-- [ ] For fair comparison with RPH, make PH subpb computation also distributed.
-- [ ] Clean up code, stick to paper notations
-
-- [ ] make hydro parametric on branching nb
-- [ ] make module function building n-ary tree
+### elementary
+- [ ] [doc] Write documentation, readme
+- [ ] [doc] Document functions properly
+- [ ] [dev] make hydrothermal example fully parametric in nstages and nbraching
+- [ ] [dev] make PH subpb solves distributed
+- [ ] [dev] rph async - make sub pb solve parametric in solver
+- [ ] [exp] write script/files for numerical experiments: first a direct/ph solve, then an rph solve with same time budget. Solution comparison, 'suboptimality' evolution, (smoothed ?) stepsize evolution. Max delay over time ?
+- [ ] [?] Clean up code, stick to paper notations
