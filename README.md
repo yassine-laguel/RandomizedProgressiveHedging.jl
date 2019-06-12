@@ -41,3 +41,4 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 - [ ] [dev] rph async - make sub pb solve parametric in solver
 - [ ] [exp] write script/files for numerical experiments: first a direct/ph solve, then an rph solve with same time budget. Solution comparison, 'suboptimality' evolution, (smoothed ?) stepsize evolution. Max delay over time ?
 - [ ] [?] Clean up code, stick to paper notations
+- [ ] [?] Q sampling : parametrize & default to p

@@ -103,7 +103,7 @@ function solve_randomized_sync(pb::Problem)
         id_scen = rand(scen_sampling_distrib)
 
         ## Projection
-        x = get_averagedtraj(pb, z, id_scen)
+        x = get_averagedtraj(pb, z, id_scen) #TODO: rename with proj ?
 
         ## Subproblem solve
         y = PH_sync_subpbsolve(pb, id_scen, 2*x-z[id_scen, :], μ, params)
