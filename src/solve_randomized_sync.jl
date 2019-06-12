@@ -63,11 +63,11 @@ function PH_sync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, param
 end
 
 """
-solve_randomized_sync(pb)
+    solve_randomized_sync(pb::Problem)
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 """
-function solve_randomized_sync(pb)
+function solve_randomized_sync(pb::Problem)
     println("--------------------------------------------------------")
     println("--- Randomized Progressive Hedging - synchronous")
     println("--------------------------------------------------------")

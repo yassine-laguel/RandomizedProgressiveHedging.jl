@@ -121,7 +121,7 @@ function terminate_workers(pb, work_channels, remotecalls_futures)
 end
 
 """
-solve_randomized_sync(pb)
+    solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
 
 Run the Randomized Progressive Hedging scheme on problem `pb`. All workers should be available.
 """

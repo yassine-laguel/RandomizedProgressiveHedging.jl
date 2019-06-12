@@ -1,10 +1,10 @@
 """
-solve_direct(pb::Problem)
+    solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer))
 
-Build the progressive hedging problem by explicitly laying out
-non-anticipatory constraints, and solve globally. 
+Build the progressive hedging problem by explicitly laying out non-anticipatory 
+constraints, and solve globally. 
 """
-function solve_direct(pb::Problem, solver = with_optimizer(Ipopt.Optimizer))
+function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer))
     println("--------------------------------------------------------")
     println("--- Direct solve")
     println("--------------------------------------------------------")

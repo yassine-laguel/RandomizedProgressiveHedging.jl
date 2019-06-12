@@ -50,7 +50,12 @@ function nonanticipatory_projection(pb::Problem, y::Matrix{Float64})
 end
 
 
-function solve_progressivehedging(pb)
+"""
+    solve_progressivehedging(pb::Problem)
+
+Run the classical Progressive Hedging scheme on problem `pb`.
+"""
+function solve_progressivehedging(pb::Problem)
     println("--------------------------------------------------------")
     println("--- Progressive Hedging - sequential")
     println("--------------------------------------------------------")
