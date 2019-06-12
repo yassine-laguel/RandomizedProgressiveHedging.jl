@@ -42,7 +42,7 @@ end
 
 function profile_test(n)
     for i = 1:n
-        st = toto(depth=10, nbranching=5)
+        st = ScenarioTree(; depth=20, nbranching=2)
     end
 end
 
@@ -56,8 +56,9 @@ function main()
 
     @time st = ScenarioTree(; depth=20, nbranching=2)
     
-    return Base.summarysize(st) / 2^20
-
+    # println("Size of tree: ", Base.summarysize(st) / 2^20, "MiB")
+    
+    return 
     pb = makeproblem()
 
     print(pb)

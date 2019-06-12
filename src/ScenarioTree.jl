@@ -148,9 +148,9 @@ function ScenarioTree(; depth::Int, nbranching::Int)
             for ind_child in 0:nbranching-1
                 cur_start = cur_stop + 1
                 cur_stop = cur_start + subsetlength-1
-                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop)
+                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop) # Time spent here
             end
-            vecnodes[ind_node_prevdepth].childs = Vector{RPH.STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1)
+            vecnodes[ind_node_prevdepth].childs = Vector{RPH.STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1) # Time spent here
             
             ind_node_prevdepth += 1
             ind_node_curdepth += nbranching
