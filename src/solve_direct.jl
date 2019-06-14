@@ -41,7 +41,7 @@ function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer))
     end
 
     ## Optimization and solution
-    print("Opimization... ")
+    print("Optimization... ")
     optimize!(model)
     println("Done.")
     
