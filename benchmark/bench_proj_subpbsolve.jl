@@ -12,8 +12,9 @@ function main()
         n = sum(length.(pb.stage_to_dim))
 
         println("\nHydrothermal scheduling pb")
-        println("- #stages: ", pb.nstages)
-        println("- #dims:   ", sum(length.(pb.stage_to_dim)))
+        println("- #stages      : ", pb.nstages)
+        println("- #scenarios   : ", pb.nscenarios)
+        println("- #dims        :   ", sum(length.(pb.stage_to_dim)))
 
         ## Get scenario index, time subpb resolution, projection
         id_scen = rand(1:pb.nscenarios)
