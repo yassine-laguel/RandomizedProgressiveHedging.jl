@@ -11,15 +11,17 @@ using Distributed
 
 using Dates, DelimitedFiles, JSON
 
-GLOBAL_LOG_DIR = joinpath("bettick", "PROJECTS", "pr-cvar")
+GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar")
 
 
 function set_logdir()
     ## Setting working directory    
     date = String(Dates.format(now(), "yyyy_mm_dd-HHhMM"))
-    logdir = joinpath(GLOBAL_LOG_DIR, "rphrun_")
+    logdir = joinpath(GLOBAL_LOG_DIR, "rphrun_$date")
 
-    isdir(logdir) || mkpath(logdir)
+    @show logdir
+    @show isdir(logdir)
+    !isdir(logdir) && mkpath(logdir)
     return logdir
 end
 
@@ -39,7 +41,7 @@ function main()
     println("- Date is: ", String(Dates.format(now(), "yyyy_mm_dd-HHhMM")))
     println("  Path is: ", pwd())
     println("- ENV[\"OAR_NODEFILE\"]: ", get(ENV, "OAR_NODEFILE", ""))
-    println("  Available cores:       ", vec(readdlm(get(ENV, "OAR_NODEFILE", ""))))
+    println("  Available cores:       ", vec(readdlm(get(ENV, "OAR_NODEFILE", ""), String)))
 
     ## Set up logging directory
     logdir = set_logdir()
@@ -116,3 +118,5 @@ function main()
     println("All done.")
     return
 end
+
+main()
