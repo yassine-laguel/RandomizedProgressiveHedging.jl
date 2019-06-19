@@ -6,9 +6,9 @@ using Distributed, OarClusterManager
 include("../examples/build_simpleexample.jl")
 include("utils.jl")
 
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-@everywhere Pkg.status()
+# @everywhere using Pkg
+# @everywhere Pkg.activate(".")
+# @everywhere Pkg.status()
 
 @everywhere using JuMP, RPH
 
