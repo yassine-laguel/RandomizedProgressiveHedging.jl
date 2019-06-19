@@ -1,8 +1,4 @@
 using Distributed
-
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-@everywhere Pkg.status()
 @everywhere using JuMP, RPH
 
 using DataStructures, LinearAlgebra, GLPK

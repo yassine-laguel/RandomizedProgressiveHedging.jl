@@ -1,6 +1,10 @@
-include("build_simpleexample.jl")
-
 using Distributed
+
+@everywhere using Pkg
+@everywhere Pkg.activate(".")
+@everywhere Pkg.status()
+
+include("build_simpleexample.jl")
 using RPH
 
 function main()

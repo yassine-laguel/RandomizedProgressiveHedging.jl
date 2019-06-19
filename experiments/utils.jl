@@ -43,22 +43,17 @@ function allocateworkers(ncores)
         ncores_masternode = get_ncoresmaster()
         remotenodecores = get_remotehosts()
 
-	@show workers()
+        @show workers()
         addprocs(ncores_masternode-1)
-	@show workers()
-	@show remotenodecores
-	@show remotenodecores[1:ncores-ncores_masternode]
+        @show workers()
+        @show remotenodecores
+        @show remotenodecores[1:ncores-ncores_masternode]
         addprocs_oar(remotenodecores[1:ncores-ncores_masternode])
-	@show workers()
-        sleep(0.1)
+        @show workers()
         @assert length(workers()) == ncores-1
 
-	## ensure package availability...
-	# @everywhere eval(Expr(:using, :Pkg))
-	# @everywhere Pkg.activate(".")
-	@everywhere push!(LOAD_PATH, joinpath(homedir(), "RPH.jl"))
-	@everywhere eval(Expr(:using, :RPH))
-	@everywhere eval(Expr(:using, :JuMP))
+        @everywhere eval(Expr(:using, :RPH)) ## RPH is supposed to be available from v1.1 env.
+        @everywhere eval(Expr(:using, :JuMP))
     end
     return
 end
@@ -86,9 +81,9 @@ function runallalgs()
     println("Asynchronous solve output is:")
     display(y_asynch)
 
-    @show norm(y_direct - y_PH)
-    @show norm(y_direct - y_synch)
-    @show norm(y_direct - y_asynch)
+    # @show norm(y_direct - y_PH)
+    # @show norm(y_direct - y_synch)
+    # @show norm(y_direct - y_asynch)
 
     return
 end
