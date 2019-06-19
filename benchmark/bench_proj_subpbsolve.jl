@@ -4,7 +4,7 @@ include("../examples/build_hydrothermalscheduling.jl")
 
 function main()
 
-    for nstages in [5, 10, 15]
+    for nstages in [5, 10, 15, 20]
         ## Get problem
         pb = build_hydrothermal_problem_vscenario(nstages = nstages)
 
@@ -14,7 +14,7 @@ function main()
         println("\nHydrothermal scheduling pb")
         println("- #stages      : ", pb.nstages)
         println("- #scenarios   : ", pb.nscenarios)
-        println("- #dims        :   ", sum(length.(pb.stage_to_dim)))
+        println("- #dims        : ", sum(length.(pb.stage_to_dim)))
 
         ## Get scenario index, time subpb resolution, projection
         id_scen = rand(1:pb.nscenarios)
@@ -48,3 +48,32 @@ main()
 # - #dims:   45
 #   3.809 ms (98393 allocations: 10.50 MiB)
 #   5.370 ms (11095 allocations: 749.91 KiB)
+
+# v2
+# Hydrothermal scheduling pb
+# - #stages      : 5
+# - #scenarios   : 16
+# - #dims        : 15
+#   333.502 ns (12 allocations: 576 bytes)
+#   3.976 ms (4538 allocations: 278.94 KiB)
+
+# Hydrothermal scheduling pb
+# - #stages      : 10
+# - #scenarios   : 512
+# - #dims        : 30
+#   6.254 μs (22 allocations: 976 bytes)
+#   5.858 ms (7830 allocations: 495.11 KiB)
+
+# Hydrothermal scheduling pb
+# - #stages      : 15
+# - #scenarios   : 16384
+# - #dims        : 45
+#   191.672 μs (32 allocations: 1.34 KiB)
+#   7.001 ms (11140 allocations: 752.33 KiB)
+
+# Hydrothermal scheduling pb
+# - #stages      : 20
+# - #scenarios   : 524288
+# - #dims        : 60
+#   6.526 ms (42 allocations: 1.73 KiB)
+#   7.300 ms (14381 allocations: 1010.77 KiB)
