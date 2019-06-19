@@ -11,7 +11,6 @@ function main()
 
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    solver = 
     y_direct = solve_direct(pb)
     println("\nDirect solve output is:")
     display(y_direct)

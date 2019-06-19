@@ -1,7 +1,10 @@
 using DataStructures, GLPK, LinearAlgebra
 # using Distributed
 # @everywhere using RPH
-using Distributed
+using Distributed, OarClusterManager
+
+include("../examples/build_simpleexample.jl")
+include("utils.jl")
 
 @everywhere using Pkg
 @everywhere Pkg.activate(".")
@@ -12,28 +15,6 @@ using Distributed
 using Dates, DelimitedFiles, JSON
 
 GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar")
-
-
-function set_logdir()
-    ## Setting working directory    
-    date = String(Dates.format(now(), "yyyy_mm_dd-HHhMM"))
-    logdir = joinpath(GLOBAL_LOG_DIR, "rphrun_$date")
-
-    @show logdir
-    @show isdir(logdir)
-    !isdir(logdir) && mkpath(logdir)
-    return logdir
-end
-
-function writelogs(problem_to_algo, logdir)
-    logpath = joinpath(logdir, "full_logs.json")
-    println("Writing logs to: ", logpath)
-    
-    open(logpath, "w") do w
-        JSON.print(w, problem_to_algo)
-    end
-    return
-end
 
 
 function main()
@@ -53,29 +34,57 @@ function main()
     problems = []
 
     push!(problems, (
-        pb = ..,
+        pbname = "simpleproblem",
+        pb = build_simpleexample(),
     ))
 
     ## Build algorithms & params used for solve
     algorithms = []
 
     push!(algorithms, (
-        fnsolve_symbol = ..,
+        algoname = "solvedirect",
+        fnsolve_symbol = :solve_direct,
         tlim = nothing,
         itmax = nothing,
+        ncores = nothing
+    ))
+    push!(algorithms, (
+        algoname = "progressivehedging",
+        fnsolve_symbol = :solve_progressivehedging,
+        tlim = nothing,
+        itmax = nothing,
+        ncores = nothing
+    ))
+    push!(algorithms, (
+        algoname = "progressivehedging",
+        fnsolve_symbol = :solve_randomized_sync,
+        tlim = nothing,
+        itmax = nothing,
+        ncores = nothing
+    ))
+    push!(algorithms, (
+        algoname = "progressivehedging",
+        fnsolve_symbol = :solve_randomized_async,
+        tlim = nothing,
+        itmax = nothing,
+        ncores = 2
     ))
 
     ## Set number of seeds to be tried
-    seeds = 1:5
-
-
-    ## Logging object
-    problem_to_algo = OrderedDict{Symbol, OrderedDict}()
+    seeds = 1:2
 
     println("#problems:  ", length(algorithms))
     println("algorithms: ", [a.fnsolve_symbol for a in algorithms])
     println("seeds:      ", seeds)
     println()
+
+    checknbcores(algorithms)
+
+    ## Logging object
+    problem_to_algo = OrderedDict{Symbol, OrderedDict}()
+
+    ## Run all algorithms once to precompile everything
+    runallalgs()
 
     ## Solve
     for problem_descr in problems
@@ -89,23 +98,28 @@ function main()
         algo_to_seedhist = OrderedDict{Any, OrderedDict}()
 
         ## Run algorithms x seed
-        for algo_descr in algorithms, seed in seeds
+        for algo_descr in algorithms
             println("- [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
             println(algo_descr.fnsolve_symbol)
-            println("seed:           ", seed)
+            println("nseeds:         ", seeds)
+            println("ncores:         ", algo_descr.ncores)
             
-            hist = OrderedDict{Symbol, Any}()
+            ## Setting up required cores
+            println("Allocating workers...")
+            allocateworkers(algo_descr.ncores)
             
-            fnsolve = eval(algo_descr.fnsolve_symbol)
-            println("\n--------------------------------------------")
-            fnsolve(pb; tlim=algo_descr.tlim, itmax=algo_descr.itmax, hist=hist, xsol=xsol, fopt=fopt, seed=seed)
-            println("--------------------------------------------\n")
+            for seed in seeds
+                println("  - Solving for seed $seed")
+                hist = OrderedDict{Symbol, Any}()
+                
+                fnsolve = eval(algo_descr.fnsolve_symbol)
+                println("\n--------------------------------------------")
+                fnsolve(pb; tlim=algo_descr.tlim, itmax=algo_descr.itmax, hist=hist, xsol=xsol, fopt=fopt, seed=seed)
+                println("--------------------------------------------\n")
 
-            # Log seed, algo
-            algo_to_seedhist[algo_descr] = (
-                seed = seed,
-                hist = hist
-            )
+                # Log seed, algo
+                algo_to_seedhist[algo_descr][seed] = hist
+            end
         end
 
         problem_to_algo[problem_descr] = algo_to_seedhist

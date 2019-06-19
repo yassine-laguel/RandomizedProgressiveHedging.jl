@@ -4,7 +4,7 @@
 Build the progressive hedging problem by explicitly laying out non-anticipatory 
 constraints, and solve globally. 
 """
-function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer))
+function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer), kwargs...)
     println("--------------------------------------------------------")
     println("--- Direct solve")
     println("--------------------------------------------------------")
