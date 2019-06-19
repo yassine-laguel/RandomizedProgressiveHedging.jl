@@ -23,7 +23,7 @@ end
 
 Run the classical Progressive Hedging scheme on problem `pb`.
 """
-function solve_progressivehedging(pb::Problem, kwargs...)
+function solve_progressivehedging(pb::Problem; kwargs...)
     println("--------------------------------------------------------")
     println("--- Progressive Hedging - sequential")
     println("--------------------------------------------------------")

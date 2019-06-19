@@ -77,7 +77,7 @@ end
 
 Run the Randomized Progressive Hedging scheme on problem `pb`. All workers should be available.
 """
-function solve_randomized_async(pb::Problem{T}, kwargs...) where T<:AbstractScenario
+function solve_randomized_async(pb::Problem{T}; kwargs...) where T<:AbstractScenario
     println("--------------------------------------------------------")
     println("--- Randomized Progressive Hedging - asynchronous")
     println("--------------------------------------------------------")

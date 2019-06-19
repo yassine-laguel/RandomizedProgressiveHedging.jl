@@ -27,7 +27,7 @@ end
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 """
-function solve_randomized_sync(pb::Problem, kwargs...)
+function solve_randomized_sync(pb::Problem; kwargs...)
     println("--------------------------------------------------------")
     println("--- Randomized Progressive Hedging - synchronous")
     println("--------------------------------------------------------")

@@ -1,20 +1,24 @@
-using DataStructures, GLPK, LinearAlgebra
-# using Distributed
-# @everywhere using RPH
 using Distributed, OarClusterManager
 
-include("../examples/build_simpleexample.jl")
-include("utils.jl")
+# GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar")
+GLOBAL_LOG_DIR = joinpath(".", "logdir")
+ENV["OAR_NODEFILE"] = joinpath(".", "logdir", "config")
 
-# @everywhere using Pkg
-# @everywhere Pkg.activate(".")
-# @everywhere Pkg.status()
+## Add all available workers
+!(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
+addprocs(get_ncoresmaster()-1)
+length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
 
-@everywhere using JuMP, RPH
+## Load relevant packages in all workers
+@everywhere push!(LOAD_PATH, pwd())
+@everywhere println(LOAD_PATH)
+@everywhere using RPH, JuMP
 
+using DataStructures, GLPK, LinearAlgebra
 using Dates, DelimitedFiles, JSON
 
-GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar")
+include("build_simpleexemple.jl")
+include("utils.jl")
 
 
 function main()
@@ -22,7 +26,8 @@ function main()
     println("- Date is: ", String(Dates.format(now(), "yyyy_mm_dd-HHhMM")))
     println("  Path is: ", pwd())
     println("- ENV[\"OAR_NODEFILE\"]: ", get(ENV, "OAR_NODEFILE", ""))
-    println("  Available cores:       ", vec(readdlm(get(ENV, "OAR_NODEFILE", ""), String)))
+    println("  # available cores on master node : ", get_ncoresmaster())
+    println("  # available remote cores         : ", length(get_remotehosts()))
 
     ## Set up logging directory
     logdir = set_logdir()
@@ -46,28 +51,24 @@ function main()
         fnsolve_symbol = :solve_direct,
         tlim = nothing,
         itmax = nothing,
-        ncores = nothing
     ))
     push!(algorithms, (
         algoname = "progressivehedging",
         fnsolve_symbol = :solve_progressivehedging,
         tlim = nothing,
         itmax = nothing,
-        ncores = nothing
     ))
     push!(algorithms, (
         algoname = "progressivehedging",
         fnsolve_symbol = :solve_randomized_sync,
         tlim = nothing,
         itmax = nothing,
-        ncores = nothing
     ))
     push!(algorithms, (
         algoname = "progressivehedging",
         fnsolve_symbol = :solve_randomized_async,
         tlim = nothing,
         itmax = nothing,
-        ncores = 2
     ))
 
     ## Set number of seeds to be tried
@@ -78,10 +79,8 @@ function main()
     println("seeds:      ", seeds)
     println()
 
-    checknbcores(algorithms)
-
     ## Logging object
-    problem_to_algo = OrderedDict{Symbol, OrderedDict}()
+    problem_to_algo = OrderedDict{Any, OrderedDict}()
 
     ## Run all algorithms once to precompile everything
     runallalgs()
@@ -102,11 +101,8 @@ function main()
             println("- [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
             println(algo_descr.fnsolve_symbol)
             println("nseeds:         ", seeds)
-            println("ncores:         ", algo_descr.ncores)
             
-            ## Setting up required cores
-            println("Allocating workers...")
-            allocateworkers(algo_descr.ncores)
+            algo_to_seedhist[algo_descr] = OrderedDict()
             
             for seed in seeds
                 println("  - Solving for seed $seed")
