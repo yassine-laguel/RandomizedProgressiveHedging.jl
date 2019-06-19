@@ -1,6 +1,4 @@
 ## Hydrothermal scheduling example, see [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf), l. cambier
-# @everywhere include("../src/RPH.jl")
-# using RPH
 using Distributed
 
 @everywhere using Pkg

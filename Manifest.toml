@@ -161,7 +161,7 @@ version = "0.3.2"
 
 [[OarClusterManager]]
 deps = ["DelimitedFiles", "Distributed"]
-git-tree-sha1 = "fb9ea9ccdb0070ba980a54de877cf2fa5ecdd501"
+git-tree-sha1 = "f6947b1bdea0fa775dd55879c588302403e64da2"
 repo-rev = "master"
 repo-url = "https://github.com/GillesBareilles/OarClusterManager.jl"
 uuid = "207ec4d0-90e1-11e9-024b-2589a7dd4862"
