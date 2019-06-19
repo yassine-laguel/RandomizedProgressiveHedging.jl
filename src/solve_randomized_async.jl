@@ -2,14 +2,15 @@
 get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
 
 Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
+Note: this function has been fairly optimized. Apply changes with caution.
 """
 function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
     nstages = pb.nstages
     n = sum(length.(pb.stage_to_dim))
     
     averaged_traj = zeros(n)
+    averaged_traj .= 0
     
-    try
     scentree = pb.scenariotree
     stage = 1
     id_curnode = scentree.idrootnode
@@ -20,8 +21,12 @@ function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
         stage_dims = pb.stage_to_dim[stage]
 
         ## update x section with average
-        averaged_traj[stage_dims] = sum(pb.probas[i] * z[i, stage_dims] for i in scen_set)
-        averaged_traj[stage_dims] /= sum(pb.probas[i] for i in scen_set)
+        sum_probas = sum(pb.probas[i] for i in scen_set)
+        for i in scen_set
+            for stage_dim in stage_dims
+                @inbounds averaged_traj[stage_dim] += pb.probas[i] * z[i, stage_dim] / sum_probas
+            end
+        end
 
         ## find node of following stage
         stage += 1
@@ -34,10 +39,6 @@ function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
         end
         isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
         id_curnode = id_nextnode
-    end
-
-    catch e
-        println(e)
     end
 
     return averaged_traj

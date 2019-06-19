@@ -40,7 +40,7 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 - [ ] [exp] write script/files for numerical experiments: first a direct/ph solve, then an rph solve with same time budget. Solution comparison, 'suboptimality' evolution, (smoothed ?) stepsize evolution. Max delay over time ?
 - [ ] [?] Clean up code, stick to paper notations
 - [ ] [?] Q sampling : parametrize & default to p
-
+- [ ] [efficiency] store strategy matrice as transposed. Access is generally per scenario, this should correspond to column ordering.
 
 ## Distributed computing with OAR
 
