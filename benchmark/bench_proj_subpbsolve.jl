@@ -3,7 +3,6 @@ include("../examples/build_hydrothermalscheduling.jl")
 
 
 function main()
-
     for nstages in [5, 10, 15, 20]
         ## Get problem
         pb = build_hydrothermal_problem_vscenario(nstages = nstages)

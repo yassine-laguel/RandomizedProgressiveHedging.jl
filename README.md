@@ -5,6 +5,7 @@ Randomized Progressive Hedging.
 ## Installation
 
 ```julia
+]add add https://github.com/GillesBareilles/OarClusterManager.jl#master
 ]add https://github.com/yassine-laguel/RPH.jl#master
 ]instantiate
 ]activate .

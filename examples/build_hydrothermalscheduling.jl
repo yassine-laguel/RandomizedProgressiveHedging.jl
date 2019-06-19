@@ -1,9 +1,5 @@
 ## Hydrothermal scheduling example, see [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf), l. cambier
 using Distributed
-
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-@everywhere Pkg.status()
 @everywhere using JuMP, RPH
 
 using DataStructures, LinearAlgebra, GLPK

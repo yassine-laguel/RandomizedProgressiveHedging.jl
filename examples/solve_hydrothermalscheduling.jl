@@ -1,3 +1,11 @@
+using Distributed
+
+@everywhere using Pkg
+@everywhere Pkg.activate(".")
+@everywhere Pkg.status()
+
+using RPH
+
 include("build_hydrothermalscheduling.jl")
 
 function main()
