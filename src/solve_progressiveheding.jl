@@ -17,38 +17,6 @@ function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     return y_new
 end
 
-"""
-nonanticipatory_projection!(x::Matrix{Float64}, pb::Problem, y::Matrix{Float64})
-
-Store in `x` the projection of `y` on the non-anticipatory subspace associated to problem `pb`.
-"""
-function nonanticipatory_projection!(x::Matrix{Float64}, pb::Problem, y::Matrix{Float64})
-    @assert size(x) == size(y) "nonanticipatory_projection!(): input and output arrays should have same size"
-    depth_to_partition = get_partitionbydepth(pb.scenariotree)
-
-    for (stage, scen_partition) in enumerate(depth_to_partition)
-        stage_dims = pb.stage_to_dim[stage]
-        for scen_set in scen_partition
-            averaged_traj = sum(pb.probas[i]*y[i, stage_dims] for i in scen_set) / sum(pb.probas[i] for i in scen_set)
-            for scen in scen_set
-                x[scen, stage_dims] = averaged_traj
-            end
-        end
-    end
-    return
-end
-
-"""
-nonanticipatory_projection(pb::Problem, y::Matrix{Float64})
-
-Compute the projection of `y` on the non-anticipatory subspace associated to problem `pb`.
-"""
-function nonanticipatory_projection(pb::Problem, y::Matrix{Float64})
-    x = zeros(size(y))
-    nonanticipatory_projection!(x, pb, y)
-    return x
-end
-
 
 """
     solve_progressivehedging(pb::Problem)

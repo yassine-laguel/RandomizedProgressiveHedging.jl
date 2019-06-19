@@ -1,52 +1,3 @@
-"""
-get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
-
-Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
-Note: this function has been fairly optimized. Apply changes with caution.
-"""
-function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
-    nstages = pb.nstages
-    n = sum(length.(pb.stage_to_dim))
-    
-    averaged_traj = zeros(n)
-    averaged_traj .= 0
-    
-    scentree = pb.scenariotree
-    stage = 1
-    id_curnode = scentree.idrootnode
-
-    while stage <= scentree.depth
-        ## Get scenarios, dimension for current stage
-        scen_set = scentree.vecnodes[id_curnode].scenarioset
-        stage_dims = pb.stage_to_dim[stage]
-
-        ## update x section with average
-        sum_probas = sum(pb.probas[i] for i in scen_set)
-        for i in scen_set
-            for stage_dim in stage_dims
-                @inbounds averaged_traj[stage_dim] += pb.probas[i] * z[i, stage_dim] / sum_probas
-            end
-        end
-
-        ## find node of following stage
-        stage += 1
-        id_nextnode = nothing
-        for id_child in scentree.vecnodes[id_curnode].childs
-            if id_scen in scentree.vecnodes[id_child].scenarioset
-                id_nextnode = id_child
-                break
-            end
-        end
-        isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
-        id_curnode = id_nextnode
-    end
-
-    return averaged_traj
-end
-
-
-
-
 struct SubproblemTask{T}
     scenario::T
     id_scenario::ScenarioId
@@ -224,7 +175,7 @@ function solve_randomized_async(pb::Problem{T}, kwargs...) where T<:AbstractScen
         ## Draw new scenario for worker, build v and task
         id_scen = rand(scen_sampling_distrib)
         
-        x[worker_to_wid[cur_worker], :] = get_averagedtraj(pb, z, id_scen)
+        @views get_averagedtraj!(x[worker_to_wid[cur_worker], :], pb, z, id_scen)
         v = 2*x[worker_to_wid[cur_worker], :] - z[id_scen, :]
         
         task = SubproblemTask(

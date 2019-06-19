@@ -8,11 +8,11 @@ get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
 
 Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
 """
-function _get_averagedtraj(pb::RPH.Problem, z::Matrix, id_scen::RPH.ScenarioId)
+function _get_averagedtraj!(averaged_traj::Vector, pb::RPH.Problem, z::Matrix, id_scen::RPH.ScenarioId)
     nstages = pb.nstages
     n = sum(length.(pb.stage_to_dim))
     
-    averaged_traj = zeros(n)
+    averaged_traj .= 0
     
     scentree = pb.scenariotree
     stage = 1
@@ -24,15 +24,12 @@ function _get_averagedtraj(pb::RPH.Problem, z::Matrix, id_scen::RPH.ScenarioId)
         stage_dims = pb.stage_to_dim[stage]
 
         ## update x section with average
-        averaged_traj[stage_dims] .= 0
         sum_probas = sum(pb.probas[i] for i in scen_set)
         for i in scen_set
             for stage_dim in stage_dims
                 @inbounds averaged_traj[stage_dim] += pb.probas[i] * z[i, stage_dim] / sum_probas
             end
         end
-        # averaged_traj[stage_dims] = sum(pb.probas[i] * z[i, stage_dims] for i in scen_set)
-        # averaged_traj[stage_dims] /= sum(pb.probas[i] for i in scen_set)
 
         ## find node of following stage
         stage += 1
@@ -43,16 +40,15 @@ function _get_averagedtraj(pb::RPH.Problem, z::Matrix, id_scen::RPH.ScenarioId)
                 break
             end
         end
-        # isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
+        isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
         id_curnode = id_nextnode
     end
-
-    return averaged_traj
+    return
 end
 
 
 function main()
-    pb = build_hydrothermal_problem_vscenario(nstages = 15)
+    pb = build_hydrothermal_problem_vscenario(nstages = 20)
 
     nscenarios = pb.nscenarios
     n = sum(length.(pb.stage_to_dim))
@@ -65,8 +61,9 @@ function main()
     ## Get scenario index, time subpb resolution, projection
     id_scen = rand(1:pb.nscenarios)
     z = rand(nscenarios, n)
+    res = zeros(n)
 
-    @btime x = _get_averagedtraj($pb, $z, $id_scen)
+    @btime _get_averagedtraj!($res, $pb, $z, $id_scen)
     # @time x = _get_averagedtraj(pb, z, id_scen)
     return
 end
