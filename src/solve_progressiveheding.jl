@@ -23,9 +23,8 @@ end
 
 Run the classical Progressive Hedging scheme on problem `pb`. 
 
-Stopping criterion is based on primal dual residual, maximum iterations or time can also be set.
-
-Return a feasible point `x`
+Stopping criterion is based on primal dual residual, maximum iterations or time 
+can also be set. Return a feasible point `x`.
 
 ## Keyword arguments:
 - `ϵ_primal`: Tolerance on primal residual.
@@ -34,7 +33,7 @@ Return a feasible point `x`
 - `tlim`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
-- `print_step`: number of iterations skipped between each print and logging.
+- `printstep`: number of iterations skipped between each print and logging.
 - `hist`: if not nothing, will record:
     + `:functionalvalue`: array of functional value indexed by iteration,
     + `:time`: array of time at the end of each iteration, indexed by iteration,
