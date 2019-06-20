@@ -75,7 +75,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     
     it = 0
     tinit = time()
-    printlev>0 && @printf " it   global residual   objective\n"
+    printlev>0 && @printf "   it   global residual   objective\n"
     while it < maxiter && time()-tinit < maxtime
         id_scen = rand(rng, scen_sampling_distrib)
 
@@ -95,7 +95,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
             objval = objective_value(pb, x_feas)
             steplength = norm(x-y)
             
-            printlev>0 && @printf "%3i   %.10e % .16e\n" it steplength objval
+            printlev>0 && @printf "%5i   %.10e % .16e\n" it steplength objval
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
@@ -110,7 +110,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
     
-    printlev>0 && mod(it, printstep) == 1 && @printf "%3i   %.10e % .16e\n" it steplength objval
+    printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e % .16e\n" it steplength objval
     printlev>0 && println("Computation time: ", time() - tinit)
 
     return x_feas
