@@ -54,5 +54,9 @@ function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
         y_sol[id_scen, :] = JuMP.value.(vars)
     end
 
+    @show termination_status(model)
+    @show primal_status(model)
+    @show dual_status(model)
+
     return y_sol
 end

@@ -8,7 +8,7 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     n = sum(length.(pb.stage_to_dim))
 
     ## Regalurized problem
-    model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+    model = Model(with_optimizer(Ipopt.Optimizer, print_level=get(params, :print_level, 0)))
 
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)

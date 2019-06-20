@@ -23,7 +23,7 @@ function main()
 
         μ = 3.0
         params = Dict()
-        @btime y = RPH.PH_sync_subpbsolve($pb, $id_scen, $z, $μ, $params)
+        @btime y = RPH.randomizedsync_subpbsolve($pb, $id_scen, $z, $μ, $params)
     end
     return
 end
