@@ -2,9 +2,9 @@ using Distributed, OarClusterManager
 
 @assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
 
-# GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar")
-GLOBAL_LOG_DIR = joinpath(".", "logdir")
-ENV["OAR_NODEFILE"] = joinpath(".", "logdir", "config")
+GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
+# GLOBAL_LOG_DIR = joinpath(".", "logdir")
+# ENV["OAR_NODEFILE"] = joinpath(".", "logdir", "config")
 
 ## Add all available workers
 !(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
