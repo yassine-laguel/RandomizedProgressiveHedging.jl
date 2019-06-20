@@ -1,7 +1,7 @@
 using Distributed, OarClusterManager
 
 @assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
-@assert get_ncoresmaster()+get_remotehosts()>1 "At least one worker should ba available for async alg."
+@assert get_ncoresmaster()+length(get_remotehosts())>1 "At least one worker should ba available for async alg."
 
 GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
 # GLOBAL_LOG_DIR = joinpath(".", "logdir")
