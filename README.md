@@ -38,7 +38,8 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 - [ ] [dev] make hydrothermal example fully parametric in nstages and nbraching
 - [ ] [dev] make PH subpb solves distributed
 - [ ] [dev] rph async - make sub pb solve parametric in solver
-- [ ] [exp] write script/files for numerical experiments: first a direct/ph solve, then an rph solve with same time budget. Solution comparison, 'suboptimality' evolution, (smoothed ?) stepsize evolution. Max delay over time ?
+- [x] [exp] write script/files for numerical experiments: first a direct/ph solve, then an rph solve with same time budget. Solution comparison, 'suboptimality' evolution, (smoothed ?) stepsize evolution. Max delay over time ?
+- [ ] [exp] Redirect stdout to file for num exp script.
 - [ ] [?] Clean up code, stick to paper notations
 - [ ] [?] Q sampling : parametrize & default to p
 
@@ -46,6 +47,4 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 
 The 'SSHManager' doesnot work as is with the oar manager. Indeed, connection between avalaible nodes of a job are done with, e.g., `oarsh luke43`.
 
-Two possibilities:
-- write a `OarClusterManager`. Already considered by someone of imag, see [this discussion](https://discourse.julialang.org/t/which-workflow-to-launch-jobs-on-a-cluster/12532). `SSHManager` could be adapted, see [code](https://github.com/JuliaLang/julia/blob/55e36cc308b66d3472990a06b2797f9f9154ea0a/stdlib/Distributed/src/managers.jl#L5).
-- `oarsh` is based on `ssh`, with specific parameters. Look into this to properly configure `SSHManager` - [doc here](https://www.grid5000.fr/w/Advanced_OAR#sharing_keys_between_jobs).
+Use `OarClusterManager`, at (https://github.com/GillesBareilles/OarClusterManager.jl#master).
