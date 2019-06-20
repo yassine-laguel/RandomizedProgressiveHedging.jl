@@ -21,7 +21,7 @@ function writelogs(problem_to_algo, logdir)
         for ext in ["stdout", "stderr"]
             filename = filter(x->occursin("$(ENV["OAR_JOB_ID"]).$ext", x), readdir(homedir()))
             if length(filename) == 1
-                cp(filename[1], joinpath(logdir, filename[1]))
+                cp(joinpath(homedir(), filename[1]), joinpath(logdir, filename[1]))
             else
                 println("No $ext file found.")
             end
