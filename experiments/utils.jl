@@ -17,12 +17,17 @@ function writelogs(problem_to_algo, logdir)
     end
 
     ## Copy stdoud, stderr file redirect of oar to right folder
-    for ext in ["stdout", "stderr"]
-        filename = filter(x->occursin("20102139.$ext", x), readdir())
-        if length(filename) == 1
-            cp(filename[1], joinpath(logdir, filename[1]))
-        else
-            println("No $ext file found.")
+    if haskey(ENV, "OAR_JOB_ID")
+        for ext in ["stdout", "stderr"]
+            @show filter(x->occursin("$(ENV["OAR_JOB_ID"]).$ext", x), readdir(homedir()))
+            @show readdir(homedir())
+            filename = filter(x->occursin("$(ENV["OAR_JOB_ID"]).$ext", x), readdir(homedir()))
+            if length(filename) == 1
+                println(filename)
+                # cp(filename[1], joinpath(logdir, filename[1]))
+            else
+                println("No $ext file found.")
+            end
         end
     end
 
