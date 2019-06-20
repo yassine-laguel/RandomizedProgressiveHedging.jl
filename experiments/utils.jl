@@ -19,12 +19,9 @@ function writelogs(problem_to_algo, logdir)
     ## Copy stdoud, stderr file redirect of oar to right folder
     if haskey(ENV, "OAR_JOB_ID")
         for ext in ["stdout", "stderr"]
-            @show filter(x->occursin("$(ENV["OAR_JOB_ID"]).$ext", x), readdir(homedir()))
-            @show readdir(homedir())
             filename = filter(x->occursin("$(ENV["OAR_JOB_ID"]).$ext", x), readdir(homedir()))
             if length(filename) == 1
-                println(filename)
-                # cp(filename[1], joinpath(logdir, filename[1]))
+                cp(filename[1], joinpath(logdir, filename[1]))
             else
                 println("No $ext file found.")
             end
