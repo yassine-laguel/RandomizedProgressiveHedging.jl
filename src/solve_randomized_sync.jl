@@ -32,7 +32,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 ## Keyword arguments:
 - `μ`: Regularization parameter.
 - `qdistr`: if not nothing, specifies the probablility distribution for scenario sampling.
-- `tlim`: Limit time spent in computations.
+- `maxtime`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
@@ -45,7 +45,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 """
 function solve_randomized_sync(pb::Problem; μ = 3,
                                             qdistr = nothing,
-                                            tlim = 3600,
+                                            maxtime = 3600,
                                             maxiter = 1e3,
                                             printlev = 1,
                                             printstep = 1,
@@ -68,15 +68,15 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
     scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
     
-    tinit = time()
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
-
+    
     it = 0
+    tinit = time()
     printlev>0 && @printf " it   global residual   objective\n"
-    while it < maxiter && time()-tinit < tlim
+    while it < maxiter && time()-tinit < maxtime
         id_scen = rand(rng, scen_sampling_distrib)
 
         ## Projection

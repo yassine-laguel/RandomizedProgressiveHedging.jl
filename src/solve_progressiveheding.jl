@@ -30,7 +30,7 @@ can also be set. Return a feasible point `x`.
 - `ϵ_primal`: Tolerance on primal residual.
 - `ϵ_dual`: Tolerance on dual residual.
 - `μ`: Regularization parameter.
-- `tlim`: Limit time spent in computations.
+- `maxtime`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
@@ -43,7 +43,7 @@ can also be set. Return a feasible point `x`.
 function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
                                                ϵ_dual = 1e-3,
                                                μ = 3,
-                                               tlim = 3600,
+                                               maxtime = 3600,
                                                maxiter = 1e3,
                                                printlev = 1,
                                                printstep = 1,
@@ -62,15 +62,15 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
     u = zeros(Float64, nscenarios, n)
     primres = dualres = Inf
 
-    tinit = time()
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
-
+    
     it = 0
+    tinit = time()
     printlev>0 && @printf " it   primal res        dual res            dot(x,u)   objective\n"
-    while !(primres < ϵ_primal && dualres < ϵ_dual) && it < maxiter && time()-tinit < tlim
+    while !(primres < ϵ_primal && dualres < ϵ_dual) && it < maxiter && time()-tinit < maxtime
         u_old = copy(u)
 
         # Subproblem solves

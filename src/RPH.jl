@@ -5,7 +5,7 @@ using LinearAlgebra
 using Distributed
 using JuMP, Ipopt, GLPK
 
-using Distributions
+using Random, Distributions
 using Printf
 
 import Base.print

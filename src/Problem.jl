@@ -11,8 +11,6 @@ function Base.show(io::IO, pb::Problem)
     print(io, " - #scenarios:   $(pb.nscenarios)\n")
     print(io, " - #stages   :   $(pb.nstages)\n")
     print(io, " - #dims     :   $(sum(length.(pb.stage_to_dim)))\n")
-    print(io, "Non-anticipatory structure:")
-    print(io, "\nScenario tree:\n", pb.scenariotree)
 end
 
 
