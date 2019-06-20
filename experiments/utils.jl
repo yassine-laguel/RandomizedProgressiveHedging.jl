@@ -21,6 +21,8 @@ function writelogs(problem_to_algo, logdir)
         filename = filter(x->occursin("20102139.$ext", x), readdir())
         if length(filename) == 1
             cp(filename[1], joinpath(logdir, filename[1]))
+        else
+            println("No $ext file found.")
         end
     end
 
@@ -31,27 +33,30 @@ end
 function runallalgs()
     pb = build_simpleexample()
 
-    y_direct = solve_direct(pb)
-    println("\nDirect solve output is:")
-    display(y_direct)
-    println("")
+    # y_direct = solve_direct(pb; printlev=0, optimizer=Ipopt.Optimizer)
+    # # println("\nDirect solve output is:")
+    # # display(y_direct)
+    # # println("")
 
-    y_PH = solve_progressivehedging(pb)
-    println("\nSequential solve output is:")
-    display(y_PH)
-    println("")
+    y_PH = solve_progressivehedging(pb; printlev=0, maxtime=0.5)
+    println("solve_progressivehedging done")
+    # println("\nSequential solve output is:")
+    # display(y_PH)
+    # println("")
 
-    y_synch = solve_randomized_sync(pb)
-    println("\nSynchronous solve output is:")
-    display(y_synch)
+    y_synch = solve_randomized_sync(pb; printlev=0, maxtime=0.5)
+    println("solve_randomized_sync done")
+    # println("\nSynchronous solve output is:")
+    # display(y_synch)
     
-    y_asynch = solve_randomized_async(pb)
-    println("Asynchronous solve output is:")
-    display(y_asynch)
+    y_asynch = solve_randomized_async(pb; printlev=0, maxtime=0.5)
+    println("solve_randomized_async done")
+    # println("Asynchronous solve output is:")
+    # display(y_asynch)
 
-    @show norm(y_direct - y_PH)
-    @show norm(y_direct - y_synch)
-    @show norm(y_direct - y_asynch)
+    # @show norm(y_direct - y_PH)
+    # @show norm(y_direct - y_synch)
+    # @show norm(y_direct - y_asynch)
 
     return
 end

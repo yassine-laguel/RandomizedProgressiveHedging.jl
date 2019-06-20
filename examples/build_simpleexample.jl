@@ -1,15 +1,13 @@
 using Distributed
-@everywhere using JuMP, RPH
-
 using DataStructures, LinearAlgebra, GLPK
+using RPH, JuMP
 
-
-@everywhere struct SimpleExScenario <: AbstractScenario
+@everywhere struct SimpleExScenario <: RPH.AbstractScenario
     trajcenter::Vector{Float64}
     constraintbound::Int
 end
 
-@everywhere function build_fs_Cs!(model::JuMP.Model, s::SimpleExScenario, id_scen::ScenarioId)
+@everywhere function build_fs_Cs!(model::JuMP.Model, s::SimpleExScenario, id_scen::RPH.ScenarioId)
     n = length(s.trajcenter)
 
     y = @variable(model, [1:n], base_name="y_s$id_scen")

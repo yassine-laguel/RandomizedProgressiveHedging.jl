@@ -4,6 +4,8 @@ using Distributed
 @everywhere Pkg.activate(".")
 @everywhere Pkg.status()
 
+@everywhere using JuMP, RPH
+
 include("build_simpleexample.jl")
 using RPH, Ipopt
 

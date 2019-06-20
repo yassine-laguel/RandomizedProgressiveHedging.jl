@@ -50,7 +50,8 @@ function solve_randomized_sync(pb::Problem; μ = 3,
                                             printlev = 1,
                                             printstep = 1,
                                             seed = nothing,
-                                            hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing)
+                                            hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
+                                            kwargs...)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - synchronous")
     printlev>0 && println("--------------------------------------------------------")

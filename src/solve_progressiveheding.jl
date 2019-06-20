@@ -47,7 +47,8 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
                                                maxiter = 1e3,
                                                printlev = 1,
                                                printstep = 1,
-                                               hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing)
+                                               hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
+                                               kwargs...)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Progressive Hedging")
     printlev>0 && println("--------------------------------------------------------")

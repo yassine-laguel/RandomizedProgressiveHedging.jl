@@ -136,7 +136,8 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 printlev = 1,
                                                 printstep = 1,
                                                 seed = nothing,
-                                                hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing) where T<:AbstractScenario
+                                                hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
+                                                kwargs...) where T<:AbstractScenario
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - asynchronous")
     printlev>0 && println("--------------------------------------------------------")
