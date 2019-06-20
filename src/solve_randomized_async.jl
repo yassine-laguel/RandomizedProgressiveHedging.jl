@@ -183,8 +183,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
     it = 0
     tinit = time()
-    @show maxiter
-    printlev>0 && @printf " it   residual            objective                 τ    maxdelay  #waitingworkers\n"
+    printlev>0 && @printf "   it   residual            objective                 τ    maxdelay  #waitingworkers\n"
     while it < maxiter && time()-tinit < maxtime
         ## Wait for a worker to complete job, take max delay one if several
         cur_worker, nwaitingworkers, maxdelay = get_oldest_readyworker(results_channels, it, worker_to_launchit, nwaitingworkers, maxdelay)
@@ -213,7 +212,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
             objval = objective_value(pb, x_feas)
             steplength = norm(step)
             
-            printlev>0 && @printf "%3i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
+            printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
@@ -231,7 +230,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
     
-    printlev>0 && mod(it, printstep) == 1 && @printf "%3i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
+    printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
     printlev>0 && println("Computation time: ", time() - tinit)
     
     ## Terminate all workers

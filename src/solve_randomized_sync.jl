@@ -110,7 +110,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
     
-    printlev>0 && @printf "%3i   %.10e % .16e\n" it steplength objval
+    printlev>0 && mod(it, printstep) == 1 && @printf "%3i   %.10e % .16e\n" it steplength objval
     printlev>0 && println("Computation time: ", time() - tinit)
 
     return x_feas
