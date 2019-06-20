@@ -1,6 +1,7 @@
 using Distributed, OarClusterManager
 
 @assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
+@assert get_ncoresmaster()+get_remotehosts()>1 "At least one worker should ba available for async alg."
 
 GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
 # GLOBAL_LOG_DIR = joinpath(".", "logdir")
@@ -129,6 +130,10 @@ function main()
         end
 
         problem_to_algo[pbname] = algo_to_seedhist
+        problem_to_algo[:nstages] = pb.nstages
+        problem_to_algo[:nscenarios] = pb.nscenarios
+        problem_to_algo[:subpbdim] = sum(length.(pb.stage_to_dim))
+        problem_to_algo[:nworkers] = length(workers())
     end
 
     ## Write log information
