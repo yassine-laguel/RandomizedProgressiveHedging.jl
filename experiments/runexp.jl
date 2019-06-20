@@ -130,10 +130,10 @@ function main()
         end
 
         problem_to_algo[pbname] = algo_to_seedhist
-        problem_to_algo[:nstages] = pb.nstages
-        problem_to_algo[:nscenarios] = pb.nscenarios
-        problem_to_algo[:subpbdim] = sum(length.(pb.stage_to_dim))
-        problem_to_algo[:nworkers] = length(workers())
+        problem_to_algo["nstages"] = pb.nstages
+        problem_to_algo["nscenarios"] = pb.nscenarios
+        problem_to_algo["subpbdim"] = sum(length.(pb.stage_to_dim))
+        problem_to_algo["nworkers"] = length(workers())
     end
 
     ## Write log information
