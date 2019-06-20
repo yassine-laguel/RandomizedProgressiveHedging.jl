@@ -77,7 +77,7 @@ function main()
     println()
 
     ## Logging object
-    problem_to_algo = OrderedDict{String, OrderedDict}()
+    problem_to_algo = OrderedDict{String, Any}()
 
     ## Run all algorithms once to precompile everything
     println("Running algs once to precompile...")
