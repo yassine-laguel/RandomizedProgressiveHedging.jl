@@ -1,17 +1,21 @@
 """
-    solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer))
+    x = solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
 
 Build the progressive hedging problem by explicitly laying out non-anticipatory 
-constraints, and solve globally. 
+constraints, and solve globally.
+
+## Keyword arguments:
+- `optimizer`: optimizer used for solve. Default is `Ipopt.Optimizer`.
+- `printlev`: if 0, mutes output from the function (not solver). Default value is 1.
 """
-function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer), kwargs...)
-    println("--------------------------------------------------------")
-    println("--- Direct solve")
-    println("--------------------------------------------------------")
+function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
+    printlev>0 && println("--------------------------------------------------------")
+    printlev>0 && println("--- Direct solve")
+    printlev>0 && println("--------------------------------------------------------")
 
-    model = Model(solver)
+    model = Model(with_optimizer(optimizer))
 
-    println("Building global model...")
+    printlev>0 && println("Building global model...")
     ## Collect subproblems
     scen_to_vars = SortedDict()
     scen_to_obj = SortedDict()
@@ -28,7 +32,7 @@ function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer), kwa
     @objective(model, Min, sum(proba_s * scen_to_obj[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
 
     ## Non anticipatory constraints
-    println("Laying out nonanticipatory constraints...")
+    printlev>0 && println("Laying out nonanticipatory constraints...")
     depth_to_part = get_partitionbydepth(pb.scenariotree)
     for (depth, partition) in enumerate(depth_to_part)
         for subset in partition
@@ -41,10 +45,10 @@ function solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer), kwa
     end
 
     ## Optimization and solution
-    print("Optimization... ")
+    printlev>0 && print("Optimization... ")
     optimize!(model)
-    println("Done.")
-    
+    printlev>0 && println("Done.")
+
     y_sol = zeros(pb.nscenarios, sum(length.(pb.stage_to_dim)))
     for (id_scen, vars) in scen_to_vars
         y_sol[id_scen, :] = JuMP.value.(vars)
