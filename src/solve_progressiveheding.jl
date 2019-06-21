@@ -12,6 +12,10 @@ function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     @objective(model, Min, obj)
     
     optimize!(model)
+    # @show termination_status(model)
+    # @show primal_status(model)
+    # @show dual_status(model)
+    # @assert false
 
     y_new = JuMP.value.(y)
     return y_new

@@ -1,6 +1,6 @@
 ## Hydrothermal scheduling example, see [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf), l. cambier
 using Distributed
-@everywhere using JuMP, RPH
+@everywhere using JuMP, RPH, LinearAlgebra
 
 using DataStructures, LinearAlgebra, GLPK
 
@@ -35,7 +35,7 @@ end
     B = s.ndams         # number of dams
     T = s.nstages
 
-    c_H = ones(B)       # dams electiricity prod costs
+    c_H = [1 for b in 1:B]       # dams electiricity prod costs
     c_E = 6             # externel elec buy cost
     D = 6               # demand at each time step
     W = 8               # dam water capacity
@@ -45,37 +45,29 @@ end
     # Convert weathertype::Int into stage to rain level
     stage_to_rainlevel = int_to_bindec(s.weathertype, s.nstages) .+1
 
-    # Y[1:B]: q_1
-    # Y[B+1:2B]: y_1
-    # Y[2B+1]: e_1
-    Y = @variable(model, [1:(2*B+1)*T], base_name="y_s$id_scen")
+    qs = @variable(model, [1:B*T], base_name="qs_s$id_scen")
+    ys = @variable(model, [1:B*T], base_name="ys_s$id_scen")
+    e = @variable(model, [1:T], base_name="e_s$id_scen")
 
     # positivity constraint
-    @constraint(model, Y[:] .>= 0)
+    @constraint(model, qs .>= 0)
+    @constraint(model, ys .>= 0)
+    @constraint(model, e .>= 0)
     
-    for t in 0:T-1
-        # Meet demand
-        offset = t*(2B+1)
-        @constraint(model, sum(Y[offset + (B+1):offset + 2B]) + Y[offset + 2B+1] >= D)
 
-        # Reservoir max capacity
-        @constraint(model, Y[offset + 1:offset + B] .<= W)
-
-    end
-
-    @constraint(model, Y[1:B] .== W1 - Y[(B+1):2B])
+    # Meet demand
+    @constraint(model, [t=1:T], sum(ys[(t-1)*B+1:t*B]) + e[t] >= D)
     
-    for t in 1:T-1
-        ## Dynamic constraints
-        offset = t*(2B+1)
-        @constraint(model, Y[offset + 1:offset + B] .== Y[offset-2B-1 + 1:offset-2B-1 + B] - Y[offset + (B+1):offset + 2B] .+ rain[stage_to_rainlevel[t]])
-    end
+    # Reservoir max capacity
+    @constraint(model, qs .<= W)
 
-    objexpr = 0
-    for t in 0:T-1
-        offset = t*(2B+1)
-        objexpr = dot(c_H, Y[offset + (B+1):offset + 2B]) + c_E * Y[offset + 2B+1]
-    end
+    ## Dynamic constraints
+    @constraint(model, qs[1:B] .== W1 - ys[1:B])
+    @constraint(model, [t=2:T], qs[(t-1)*B + 1:(t-1)*B + B] .== qs[(t-2)*B + 1:(t-2)*B + B] - ys[(t-1)*B + 1:(t-1)*B + B] .+ rain[stage_to_rainlevel[t]])
+
+    objexpr = sum(dot(c_H, ys[(t-1)B + 1:(t-1)B + B]) + c_E * e[t] for t in 1:T)
+
+    Y = collect(Iterators.flatten([ union(ys[(t-1)*B+1:t*B], qs[(t-1)*B+1:t*B], e[t]) for t in 1:T] ))
 
     return Y, objexpr, nothing
 end

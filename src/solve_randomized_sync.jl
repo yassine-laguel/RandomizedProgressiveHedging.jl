@@ -46,7 +46,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 function solve_randomized_sync(pb::Problem; μ = 3,
                                             qdistr = nothing,
                                             maxtime = 3600,
-                                            maxiter = 1e3,
+                                            maxiter = 1e4,
                                             printlev = 1,
                                             printstep = 1,
                                             seed = nothing,
