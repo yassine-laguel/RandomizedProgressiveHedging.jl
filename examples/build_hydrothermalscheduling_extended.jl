@@ -23,6 +23,7 @@ end
 @everywhere struct HydroThermalScenarioExtended <: RPH.AbstractScenario
     weathertype::Int    # Int whose base 2 decomposition holds stage to rain level info.
     nstages::Int
+    ndams::Int
 end
 
 # """

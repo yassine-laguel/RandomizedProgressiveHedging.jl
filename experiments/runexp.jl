@@ -1,3 +1,4 @@
+# ENV["OAR_NODEFILE"] = joinpath(".", "logdir", "config")
 using Distributed, OarClusterManager
 
 @assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
@@ -41,13 +42,13 @@ function main()
     ## Build problems to be solved
     problems = []
 
-    push!(problems, OrderedDict(
-        :pbname => "simpleproblem",
-        :pb => build_simpleexample(),
-    ))
+    # push!(problems, OrderedDict(
+    #     :pbname => "simpleproblem",
+    #     :pb => build_simpleexample(),
+    # ))
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_10stages_20dams",
-        :pb => build_hydrothermalextended_problem(nstages=10, ndams=20),
+        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
     ))
 
     ## Build algorithms & params used for solve

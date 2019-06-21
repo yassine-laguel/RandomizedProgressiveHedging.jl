@@ -4,7 +4,7 @@ randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`xz_scen`)' where 'f_s' is the cost function associated with 
 the scenario `id_scen`.
 """
-function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
+function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params::AbstractDict)
     n = sum(length.(pb.stage_to_dim))
 
     ## Regalurized problem
@@ -73,7 +73,10 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
-    
+
+    ## Subpb
+    subpbparams = OrderedDict()
+
     it = 0
     tinit = time()
     printlev>0 && @printf "   it   global residual   objective\n"
@@ -84,7 +87,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
         get_averagedtraj!(x, pb, z, id_scen) #TODO: rename with proj ?
 
         ## Subproblem solve
-        y = randomizedsync_subpbsolve(pb, id_scen, 2*x-z[id_scen, :], μ, params)
+        y = randomizedsync_subpbsolve(pb, id_scen, 2*x-z[id_scen, :], μ, subpbparams)
 
         ## Global variable update
         z[id_scen, :] += (y - x)
