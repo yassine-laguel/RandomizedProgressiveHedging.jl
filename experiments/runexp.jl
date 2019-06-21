@@ -20,6 +20,7 @@ using GLPK, Ipopt, LinearAlgebra
 using DataStructures, Dates, DelimitedFiles, JSON
 
 include("../examples/build_simpleexample.jl")
+include("../examples/build_hydrothermalscheduling_extended.jl")
 include("utils.jl")
 
 
@@ -43,6 +44,10 @@ function main()
     push!(problems, OrderedDict(
         :pbname => "simpleproblem",
         :pb => build_simpleexample(),
+    ))
+    push!(problems, OrderedDict(
+        :pbname => "hydrothermal_10stages_20dams",
+        :pb => build_hydrothermalextended_problem(nstages=10, ndams=20),
     ))
 
     ## Build algorithms & params used for solve
@@ -93,8 +98,15 @@ function main()
 
         ## First, solve pb up to reasonable precision. Get optimal objective, solution.
         println("Long solve for solution...")
-        xsol = solve_progressivehedging(pb, ϵ_primal=1e-5, ϵ_dual=1e-5, maxtime=30*60, printstep=100)
-        fopt = objective_value(pb, xsol)
+        xsol = nothing
+        fopt = nothing
+        try
+            xsol = solve_progressivehedging(pb, ϵ_primal=1e-5, ϵ_dual=1e-5, maxtime=30*60, printstep=100)
+            fopt = objective_value(pb, xsol)
+        catch e
+            println("Error during ph solve.")
+            println(e)
+        end
 
 
         ## Then, run all algs
