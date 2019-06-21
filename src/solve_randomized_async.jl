@@ -1,51 +1,3 @@
-"""
-get_averagedtraj(pb::Problem, z::Matrix{Float64}, id_scen::ScenarioId)
-
-Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
-"""
-function get_averagedtraj(pb::Problem, z::Matrix, id_scen::ScenarioId)
-    nstages = pb.nstages
-    n = sum(length.(pb.stage_to_dim))
-    
-    averaged_traj = zeros(n)
-    
-    try
-    scentree = pb.scenariotree
-    stage = 1
-    id_curnode = scentree.idrootnode
-
-    while stage <= scentree.depth
-        ## Get scenarios, dimension for current stage
-        scen_set = scentree.vecnodes[id_curnode].scenarioset
-        stage_dims = pb.stage_to_dim[stage]
-
-        ## update x section with average
-        averaged_traj[stage_dims] = sum(pb.probas[i] * z[i, stage_dims] for i in scen_set)
-        averaged_traj[stage_dims] /= sum(pb.probas[i] for i in scen_set)
-
-        ## find node of following stage
-        stage += 1
-        id_nextnode = nothing
-        for id_child in scentree.vecnodes[id_curnode].childs
-            if id_scen in scentree.vecnodes[id_child].scenarioset
-                id_nextnode = id_child
-                break
-            end
-        end
-        isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
-        id_curnode = id_nextnode
-    end
-
-    catch e
-        println(e)
-    end
-
-    return averaged_traj
-end
-
-
-
-
 struct SubproblemTask{T}
     scenario::T
     id_scenario::ScenarioId
@@ -125,7 +77,7 @@ end
 
 Run the Randomized Progressive Hedging scheme on problem `pb`. All workers should be available.
 """
-function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
+function solve_randomized_async(pb::Problem{T}, kwargs...) where T<:AbstractScenario
     println("--------------------------------------------------------")
     println("--- Randomized Progressive Hedging - asynchronous")
     println("--------------------------------------------------------")
@@ -223,7 +175,7 @@ function solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
         ## Draw new scenario for worker, build v and task
         id_scen = rand(scen_sampling_distrib)
         
-        x[worker_to_wid[cur_worker], :] = get_averagedtraj(pb, z, id_scen)
+        @views get_averagedtraj!(x[worker_to_wid[cur_worker], :], pb, z, id_scen)
         v = 2*x[worker_to_wid[cur_worker], :] - z[id_scen, :]
         
         task = SubproblemTask(

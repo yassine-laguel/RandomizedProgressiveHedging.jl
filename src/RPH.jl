@@ -53,6 +53,7 @@ struct Problem{T}
 end
 
 include("Problem.jl")
+include("projections.jl")
 
 ## Solvers
 include("solve_direct.jl")
