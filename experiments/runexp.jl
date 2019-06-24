@@ -6,7 +6,6 @@ using Distributed, OarClusterManager
 
 GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
 # GLOBAL_LOG_DIR = joinpath(".", "logdir")
-# ENV["OAR_NODEFILE"] = joinpath(".", "logdir", "config")
 
 ## Add all available workers
 !(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
@@ -77,7 +76,7 @@ function main()
     seeds = 1:5
 
     println("Experiment summarys:")
-    println("  #problems:  ", length(algorithms))
+    println("  #problems:  ", length(problems))
     println("  algorithms: ", [a[:fnsolve_symbol] for a in algorithms])
     println("  seeds:      ", seeds)
     println()
