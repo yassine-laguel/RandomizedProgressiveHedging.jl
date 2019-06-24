@@ -88,7 +88,7 @@ function get_oldest_readyworker(results_channels, it, worker_to_launchit, nwaiti
         ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
     end
     
-    ## Get oldest worker id
+    ## Get oldest ready worker id
     worker_to_delay = SortedDict(w_id=>it-worker_to_launchit[w_id] for w_id in ready_workers)
 
     return argmax(worker_to_delay), max(nwaitingworkers, length(ready_workers)), max(maxdelay, maximum(values(worker_to_delay)))
@@ -222,6 +222,9 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         giveworkertask!(work_channels, worker_to_launchit, worker_to_scen, it, cur_worker, pb, id_scen, μ, v)
 
         # invariants, indicators, prints
+        !isnothing(hist) && push!(hist[:number_waitingworkers], nwaitingworkers)
+        !isnothing(hist) && push!(hist[:maxdelay], maxdelay)
+
         if mod(it, printstep) == 0
             x_feas = nonanticipatory_projection(pb, z)
             objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
@@ -231,8 +234,6 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && push!(hist[:number_waitingworkers], nwaitingworkers)
-            !isnothing(hist) && push!(hist[:maxdelay], maxdelay)
             !isnothing(hist) && haskey(hist, :approxsol) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
             
             nwaitingworkers = maxdelay = 0

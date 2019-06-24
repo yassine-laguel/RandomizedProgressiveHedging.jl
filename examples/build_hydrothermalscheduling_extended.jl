@@ -73,7 +73,7 @@ end
 end
 
 
-function build_hydrothermalextended_problem(; nstages = 5, ndams=10)
+function build_hydrothermalextended_problem(; nstages = 5, ndams=10, p = 1/4)
     nbranching = 2
     nscenarios = 2^(nstages-1)
 
@@ -83,8 +83,16 @@ function build_hydrothermalextended_problem(; nstages = 5, ndams=10)
     end
 
     scenariotree = ScenarioTree(; depth=nstages, nbranching=2)
+    
+    ## Building probas: p is proba of rain
+    probas = zeros(nscenarios)
+    for s_id in 0:nscenarios-1
+        ## in binary decomposition: 0 -> no rain; 1-> rain
+        probas[s_id+1] = prod(v*p + (1-v)*(1-p) for v in int_to_bindec(s_id, nstages)[2:end])
+    end
 
-    probas = ones(nscenarios) / nscenarios
+    @assert isapprox(sum(probas), 1.)
+
     dim_to_subspace = [1+(2ndams+1)*i:(2ndams+1)*(i+1) for i in 0:nstages-1]
 
     return Problem(
