@@ -15,8 +15,8 @@ end
 
 
 function objective_value(pb, x)
-    optimizer=GLPK.Optimizer
-    optimizer_params = Dict{Symbol, Any}()
+    optimizer=Ipopt.Optimizer
+    optimizer_params = Dict{Symbol, Any}(:print_level=>0)
 
     global_objective = 0
     for id_scen in 1:pb.nscenarios
