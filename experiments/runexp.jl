@@ -47,7 +47,7 @@ function main()
     # ))
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_10stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=2, ndams=20),
+        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
     ))
 
     ## Build algorithms & params used for solve
@@ -56,20 +56,20 @@ function main()
     push!(algorithms, OrderedDict(
         :algoname => "progressivehedging",
         :fnsolve_symbol => :solve_progressivehedging,
-        :maxtime => 10,
-        :maxiter => 1e5,
+        :maxtime => 60*60,
+        :maxiter => 1e9,
     ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_sync",
         :fnsolve_symbol => :solve_randomized_sync,
-        :maxtime => 10,
-        :maxiter => 1e5,
+        :maxtime => 60*60,
+        :maxiter => 1e9,
     ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_async",
         :fnsolve_symbol => :solve_randomized_async,
-        :maxtime => 10,
-        :maxiter => 1e5,
+        :maxtime => 60*60,
+        :maxiter => 1e9,
     ))
 
     ## Set number of seeds to be tried
@@ -102,7 +102,7 @@ function main()
         xsol = nothing
         fopt = nothing
         try
-            xsol = solve_progressivehedging(pb, ϵ_primal=1e-5, ϵ_dual=1e-5, maxtime=30*60, printstep=100)
+            xsol = solve_progressivehedging(pb, ϵ_primal=1e-5, ϵ_dual=1e-5, maxtime=3*60*60, maxiter=1e6, printstep=100)
             fopt = objective_value(pb, xsol)
         catch e
             println("Error during ph solve.")
