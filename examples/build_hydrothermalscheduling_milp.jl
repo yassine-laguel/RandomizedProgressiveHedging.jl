@@ -50,12 +50,10 @@ end
     e = @variable(model, [1:T], base_name="e_s$id_scen")
 
     # positivity constraint
-    for t in 1:T
-        @NLconstraint(model, e[t] >= 0)
-    end
+    @constraint(model, e .>= 0)
     @constraint(model, qs .>= 0)
     @constraint(model, ys .>= 0)
-    
+    @constraint(model, ys .<= W + maximum(rain))
 
     # Meet demand
     @constraint(model, [t=1:T], sum(ys[(t-1)*B+1:t*B]) + e[t] >= D)
@@ -66,9 +64,11 @@ end
     ## Dynamic constraints
     @constraint(model, qs[1:B] .== W1 - ys[1:B])
     @constraint(model, [t=2:T], qs[(t-1)*B + 1:(t-1)*B + B] .== qs[(t-2)*B + 1:(t-2)*B + B] - ys[(t-1)*B + 1:(t-1)*B + B] .+ rain[stage_to_rainlevel[t]])
+    
+    ## Fool Juniper to avoid printing warnings.
+    @NLconstraint(model, 0 <= 1)
 
-    objexpr = @NLexpression(model, sum(sum(c_H[i]*ys[(t-1)B + i] for i in 1:B) + c_E * e[t] for t in 1:T))
-    @show objexpr  
+    objexpr = @expression(model, sum(sum(c_H[i]*ys[(t-1)B + i] for i in 1:B) + c_E * e[t] for t in 1:T))
     Y = collect(Iterators.flatten([ union(ys[(t-1)*B+1:t*B], qs[(t-1)*B+1:t*B], e[t]) for t in 1:T] ))
 
     return Y, objexpr, nothing

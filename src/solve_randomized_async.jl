@@ -227,7 +227,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
         if mod(it, printstep) == 0
             x_feas = nonanticipatory_projection(pb, z)
-            objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
+            objval = objective_value(pb, x_feas)
             steplength = norm(step)
             
             printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
@@ -244,7 +244,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     
     ## Get final solution
     x_feas = nonanticipatory_projection(pb, z)
-    objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
+    objval = objective_value(pb, x_feas)
     
     printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
     printlev>0 && println("Computation time: ", time() - tinit)
