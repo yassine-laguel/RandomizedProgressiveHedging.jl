@@ -74,7 +74,7 @@ function main()
     ))
 
     ## Set number of seeds to be tried
-    seeds = 1:2
+    seeds = 1:5
 
     println("Experiment summarys:")
     println("  #problems:  ", length(algorithms))
@@ -119,6 +119,7 @@ function main()
             println("    nseeds:         ", seeds)
             
             algo_to_seedhist[algo_descr[:algoname]] = OrderedDict()
+            algo_to_seedhist["seeds"] = collect(seeds)
             
             for seed in seeds
                 println("  - Solving for seed $seed")
