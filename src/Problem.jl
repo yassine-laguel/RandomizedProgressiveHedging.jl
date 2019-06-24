@@ -14,25 +14,38 @@ function Base.show(io::IO, pb::Problem)
 end
 
 
-function objective_value(pb, x; optimizer=GLPK.Optimizer, optimizer_params = Dict{Symbol, Any}())
+function objective_value(pb, x)
+    optimizer=GLPK.Optimizer
+    optimizer_params = Dict{Symbol, Any}()
+
     global_objective = 0
     for id_scen in 1:pb.nscenarios
         ## Layout JuMP problem with objective
         model = Model(with_optimizer(optimizer; optimizer_params...))
-
-        y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
+        
+        y, obj, ctrrefs = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
+        
         @objective(model, Min, obj)
+        
+        ## Remove all constraints (including on variables)
+        model.nlp_data = nothing
+        for (ftype, settype) in list_of_constraint_types(model)
+            for ctr in all_constraints(model, ftype, settype)
+                delete(model, ctr)
+            end
+        end
 
         ## Fix variables
         for i in 1:size(y, 1)
             fix(y[i], x[id_scen, i], force=true)
         end
-        
+
         ## Get objective value and constraint violation
         optimize!(model)
 
         global_objective += pb.probas[id_scen] * objective_value(model)
     end
+
     return global_objective
 end
 

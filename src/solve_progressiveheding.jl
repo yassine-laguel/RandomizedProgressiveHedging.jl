@@ -102,7 +102,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
         primres = norm(pb, x-y)
         dualres = (1/μ) * norm(pb, u - u_old)
         if mod(it, printstep) == 0
-            objval = objective_value(pb, x; optimizer=optimizer, optimizer_params=optimizer_params)
+            objval = objective_value(pb, x)
             dot_xu = dot(pb, x, u)
 
             printlev>0 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
@@ -116,7 +116,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
     end
 
     ## Final print
-    objval = objective_value(pb, x; optimizer=optimizer, optimizer_params=optimizer_params)
+    objval = objective_value(pb, x)
     dot_xu = dot(pb, x, u)
 
     printlev>0 && mod(it, printstep) == 1 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval

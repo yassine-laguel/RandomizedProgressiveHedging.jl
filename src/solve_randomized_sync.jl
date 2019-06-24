@@ -21,6 +21,8 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
         @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
     end
+    # @show termination_status(model)
+    # @show primal_status(model)
 
     return JuMP.value.(y)
 end
@@ -104,7 +106,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
         # invariants, indicators
         if mod(it, printstep) == 0
             x_feas = nonanticipatory_projection(pb, z)
-            objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
+            objval = objective_value(pb, x_feas)
             steplength = norm(x-y)
             
             printlev>0 && @printf "%5i   %.10e % .16e\n" it steplength objval
@@ -119,7 +121,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
 
     ## Final print
     x_feas = nonanticipatory_projection(pb, z)
-    objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
+    objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
     
     printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e % .16e\n" it steplength objval
