@@ -52,6 +52,26 @@ struct Problem{T}
     scenariotree::ScenarioTree
 end
 
+###############################################################################
+## Risk measure
+abstract type AbstractRiskMeasure end
+
+struct RiskNeutral <: AbstractRiskMeasure
+end
+
+struct CVar <: AbstractRiskMeasure 
+    p::Float64
+end
+
+function get_scenariodim(pb::Problem, ::Type{RiskNeutral})
+    return sum(length.(pb.stage_to_dim))
+end
+
+function get_scenariodim(pb::Problem, cvar::CVar)
+    return sum(length.(pb.stage_to_dim))+1
+end
+
+
 include("Problem.jl")
 include("projections.jl")
 
@@ -62,6 +82,7 @@ include("solve_randomized_sync.jl")
 include("solve_randomized_async.jl")
 
 export AbstractScenario, ScenarioId, Problem, ScenarioTree, objective_value
+export AbstractRiskMeasure, RiskNeutral, CVar
 export solve_direct, solve_progressivehedging, solve_randomized_sync, solve_randomized_async
 
 ## Test problems
