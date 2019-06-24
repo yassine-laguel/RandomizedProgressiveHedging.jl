@@ -47,7 +47,7 @@ function main()
     # ))
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_10stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
+        :pb => build_hydrothermalextended_problem(;nstages=2, ndams=20),
     ))
 
     ## Build algorithms & params used for solve
@@ -56,19 +56,19 @@ function main()
     push!(algorithms, OrderedDict(
         :algoname => "progressivehedging",
         :fnsolve_symbol => :solve_progressivehedging,
-        :maxtime => 3,
+        :maxtime => 10,
         :maxiter => 1e5,
     ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_sync",
         :fnsolve_symbol => :solve_randomized_sync,
-        :maxtime => 3,
+        :maxtime => 10,
         :maxiter => 1e5,
     ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_async",
         :fnsolve_symbol => :solve_randomized_async,
-        :maxtime => 3,
+        :maxtime => 10,
         :maxiter => 1e5,
     ))
 
@@ -110,7 +110,7 @@ function main()
 
 
         ## Then, run all algs
-        algo_to_seedhist = OrderedDict{String, OrderedDict}()
+        algo_to_seedhist = OrderedDict{String, Any}()
 
         for algo_descr in algorithms
             println("  - [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
