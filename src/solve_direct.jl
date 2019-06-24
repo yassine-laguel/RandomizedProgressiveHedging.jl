@@ -8,12 +8,12 @@ constraints, and solve globally.
 - `optimizer`: optimizer used for solve. Default is `Ipopt.Optimizer`.
 - `printlev`: if 0, mutes output from the function (not solver). Default value is 1.
 """
-function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
+function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1, optimizer_params=Dict{Symbol, Any}())
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Direct solve")
     printlev>0 && println("--------------------------------------------------------")
 
-    model = Model(with_optimizer(optimizer))
+    model = Model(with_optimizer(optimizer; optimizer_params...))
 
     printlev>0 && println("Building global model...")
     ## Collect subproblems
@@ -54,9 +54,9 @@ function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
         y_sol[id_scen, :] = JuMP.value.(vars)
     end
 
-    @show termination_status(model)
-    @show primal_status(model)
-    @show dual_status(model)
+    printlev>0 && @show termination_status(model)
+    printlev>0 && @show primal_status(model)
+    printlev>0 && @show dual_status(model)
 
     return y_sol
 end
