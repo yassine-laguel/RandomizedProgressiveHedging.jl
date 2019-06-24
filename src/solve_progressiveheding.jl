@@ -2,7 +2,7 @@ function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     n = sum(length.(pb.stage_to_dim))
     
     ## Regalurized problem
-    model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+    model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
 
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
@@ -43,6 +43,8 @@ can also be set. Return a feasible point `x`.
     + `:time`: array of time at the end of each iteration, indexed by iteration,
     + `:dist_opt`: if dict has entry `:approxsol`, array of distance between iterate and `hist[:approxsol]`, indexed by iteration.
     + `:logstep`: number of iteration between each log.
+- `optimizer`: an optimizer for subproblem solve.
+- `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
 function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
                                                ϵ_dual = 1e-3,
@@ -52,6 +54,8 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
                                                printlev = 1,
                                                printstep = 1,
                                                hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
+                                               optimizer = Ipopt.Optimizer,
+                                               optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                kwargs...)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Progressive Hedging")
@@ -71,6 +75,10 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
+
+    subpbparams = OrderedDict{Symbol, Any}()
+    subpbparams[:optimizer] = optimizer
+    subpbparams[:optimizer_params] = optimizer_params
     
     it = 0
     tinit = time()
@@ -80,7 +88,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
 
         # Subproblem solves
         for id_scen in 1:nscenarios
-            y[id_scen, :] = subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, params)
+            y[id_scen, :] = subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, subpbparams)
         end
 
         # projection on non anticipatory subspace
@@ -94,7 +102,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
         primres = norm(pb, x-y)
         dualres = (1/μ) * norm(pb, u - u_old)
         if mod(it, printstep) == 0
-            objval = objective_value(pb, x)
+            objval = objective_value(pb, x; optimizer=optimizer, optimizer_params=optimizer_params)
             dot_xu = dot(pb, x, u)
 
             printlev>0 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
@@ -108,7 +116,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
     end
 
     ## Final print
-    objval = objective_value(pb, x)
+    objval = objective_value(pb, x; optimizer=optimizer, optimizer_params=optimizer_params)
     dot_xu = dot(pb, x, u)
 
     printlev>0 && mod(it, printstep) == 1 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval

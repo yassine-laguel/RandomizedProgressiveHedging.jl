@@ -12,7 +12,8 @@ do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with 
 the scenario `id_scen`.
 """
-function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
+function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
+    params = take!(paramschan)
     while true
         try
             t0 = time()
@@ -23,7 +24,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
             end
 
             # do work
-            model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+            model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
             
             # Get scenario objective function, build constraints in model
             y, obj, ctrref = subpbtask.build_subpb(model, subpbtask.scenario, subpbtask.id_scenario)
@@ -44,7 +45,7 @@ end
 
 
 
-function init_workers(pb::Problem{T}) where T<:AbstractScenario
+function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
     if workers() == Vector([1])
         @error "No workers available. Returning"
         return
@@ -52,9 +53,14 @@ function init_workers(pb::Problem{T}) where T<:AbstractScenario
 
     work_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{SubproblemTask{T}}(3), worker_id) for worker_id in workers())
     results_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Vector{Float64}}(3), worker_id) for worker_id in workers())
+    params_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Dict{Symbol,Any}}(3), worker_id) for worker_id in workers())
     
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, worker_id, work_channels[worker_id], results_channels[worker_id]) for worker_id in workers())
-    return work_channels, results_channels, remotecalls_futures
+    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, worker_id, work_channels[worker_id], results_channels[worker_id], params_channels[worker_id]) for worker_id in workers())
+    for w_id in workers()
+        put!(params_channels[w_id], subpbparams)
+    end
+
+    return work_channels, results_channels, params_channels, remotecalls_futures
 end
 
 function terminate_workers(pb, work_channels, remotecalls_futures)
@@ -127,6 +133,8 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:maxdelay`: array of maximal delay among done workers, indexed by iteration,
     + `:dist_opt`: if dict has entry `:approxsol`, array of distance between iterate and `hist[:approxsol]`, indexed by iteration.
     + `:logstep`: number of iteration between each log.
+- `optimizer`: an optimizer for subproblem solve.
+- `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
 function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 c = 0.9,
@@ -137,6 +145,8 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 printstep = 1,
                                                 seed = nothing,
                                                 hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
+                                                optimizer = Ipopt.Optimizer,
+                                                optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                 kwargs...) where T<:AbstractScenario
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - asynchronous")
@@ -166,11 +176,15 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
 
+    subpbparams = OrderedDict{Symbol, Any}()
+    subpbparams[:optimizer] = optimizer
+    subpbparams[:optimizer_params] = optimizer_params
+
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
 
     printlev>0 && printstyled("Launching remotecalls... ", color=:red)
-    work_channels, results_channels, remotecalls_futures = init_workers(pb)
+    work_channels, results_channels, params_channels, remotecalls_futures = init_workers(pb, subpbparams)
     printlev>0 && printstyled("Done.\n", color=:red)
     worker_to_scen = OrderedDict{Int, ScenarioId}()
     worker_to_launchit = OrderedDict{Int, ScenarioId}()
@@ -210,7 +224,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         # invariants, indicators, prints
         if mod(it, printstep) == 0
             x_feas = nonanticipatory_projection(pb, z)
-            objval = objective_value(pb, x_feas)
+            objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
             steplength = norm(step)
             
             printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
@@ -229,7 +243,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     
     ## Get final solution
     x_feas = nonanticipatory_projection(pb, z)
-    objval = objective_value(pb, x_feas)
+    objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
     
     printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
     printlev>0 && println("Computation time: ", time() - tinit)

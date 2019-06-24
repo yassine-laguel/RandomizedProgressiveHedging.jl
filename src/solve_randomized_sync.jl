@@ -8,7 +8,7 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     n = sum(length.(pb.stage_to_dim))
 
     ## Regalurized problem
-    model = Model(with_optimizer(Ipopt.Optimizer, print_level=get(params, :print_level, 0)))
+    model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
 
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
@@ -18,7 +18,10 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     @objective(model, Min, obj)
     
     optimize!(model)
-    
+    if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
+        @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+    end
+
     return JuMP.value.(y)
 end
 
@@ -42,6 +45,8 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:time`: array of time at the end of each iteration, indexed by iteration,
     + `:dist_opt`: if dict has entry `:approxsol`, array of distance between iterate and `hist[:approxsol]`, indexed by iteration.
     + `:logstep`: number of iteration between each log.
+- `optimizer`: an optimizer for subproblem solve.
+- `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
 function solve_randomized_sync(pb::Problem; μ = 3,
                                             qdistr = nothing,
@@ -51,6 +56,8 @@ function solve_randomized_sync(pb::Problem; μ = 3,
                                             printstep = 1,
                                             seed = nothing,
                                             hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
+                                            optimizer = Ipopt.Optimizer,
+                                            optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                             kwargs...)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - synchronous")
@@ -74,8 +81,9 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
 
-    ## Subpb
-    subpbparams = OrderedDict()
+    subpbparams = OrderedDict{Symbol, Any}()
+    subpbparams[:optimizer] = optimizer
+    subpbparams[:optimizer_params] = optimizer_params
 
     it = 0
     tinit = time()
@@ -96,7 +104,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
         # invariants, indicators
         if mod(it, printstep) == 0
             x_feas = nonanticipatory_projection(pb, z)
-            objval = objective_value(pb, x_feas)
+            objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
             steplength = norm(x-y)
             
             printlev>0 && @printf "%5i   %.10e % .16e\n" it steplength objval
@@ -111,7 +119,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
 
     ## Final print
     x_feas = nonanticipatory_projection(pb, z)
-    objval = objective_value(pb, x_feas)
+    objval = objective_value(pb, x_feas; optimizer=optimizer, optimizer_params=optimizer_params)
     steplength = norm(x-y)
     
     printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e % .16e\n" it steplength objval

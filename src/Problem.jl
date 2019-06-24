@@ -14,11 +14,11 @@ function Base.show(io::IO, pb::Problem)
 end
 
 
-function objective_value(pb, x)
+function objective_value(pb, x; optimizer=GLPK.Optimizer, optimizer_params = Dict{Symbol, Any}())
     global_objective = 0
     for id_scen in 1:pb.nscenarios
         ## Layout JuMP problem with objective
-        model = Model(with_optimizer(Ipopt.Optimizer, print_level=0))
+        model = Model(with_optimizer(optimizer; optimizer_params...))
 
         y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
         @objective(model, Min, obj)
