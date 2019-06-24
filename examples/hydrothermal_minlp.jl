@@ -50,6 +50,7 @@ end
     stage_to_rainlevel = int_to_bindec(s.weathertype, s.nstages) .+1
 
     Y = @variable(model, [1:(2*B+1)*T], base_name="y_s$id_scen")
+    Ybin = @variable(model, [1:T], base_name="y_bin$id_scen")
 
     ## 
     # Y[1:B]: q_1
@@ -82,7 +83,7 @@ end
     objexpr = 0
     for t in 0:T-1
         offset = t*(2B+1)
-        objexpr = dot(c_H, Y[offset + (B+1):offset + 2B]) + c_E * Y[offset + 2B+1]
+        objexpr += dot(c_H, Y[offset + (B+1):offset + 2B]) + c_E * Y[offset + 2B+1]
     end
 
     return Y, objexpr, nothing
