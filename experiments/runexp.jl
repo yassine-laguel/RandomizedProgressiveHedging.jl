@@ -83,6 +83,7 @@ function main()
 
     ## Logging object
     problem_to_algo = OrderedDict{String, Any}()
+    problem_to_algo["problem_names"] = [pb[:pbname] for pb in problems]
 
     ## Run all algorithms once to precompile everything
     println("Running algs once to precompile...")
