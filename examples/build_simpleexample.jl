@@ -14,7 +14,7 @@ end
     objexpr = sum((y[i] - s.trajcenter[i])^2 for i in 1:n)
     @constraint(model, y .<= s.constraintbound)
     
-    return y, objexpr, nothing
+    return y, objexpr, []
 end
 
 function build_simpleexample()

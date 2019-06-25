@@ -31,7 +31,7 @@ function objective_value(pb, x)
         model.nlp_data = nothing
         for (ftype, settype) in list_of_constraint_types(model)
             for ctr in all_constraints(model, ftype, settype)
-                !(ctr in ctrrefs) && delete(model, ctr)
+                (length(ctrrefs)==0 || !(ctr in ctrrefs)) && delete(model, ctr)
             end
         end
 
