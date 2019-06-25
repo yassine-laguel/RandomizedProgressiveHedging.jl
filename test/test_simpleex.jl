@@ -28,9 +28,6 @@ using Ipopt, LinearAlgebra, Distributed
 
     @testset "Solve asynchronous" begin
 
-        addprocs(1)
-        @show workers()
-        @show workers() !== Vector([1])
         if workers() !== Vector([1])
             y_async = solve_randomized_async(pb, maxtime=1e3, printlev=0)
             
