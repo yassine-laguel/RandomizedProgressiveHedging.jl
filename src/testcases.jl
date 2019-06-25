@@ -14,7 +14,7 @@ end
     
     objexpr = sum((y[i] - s.trajcenter[i])^2 for i in 1:n)
 
-    return y, objexpr, nothing
+    return y, objexpr, []
 end
 
 @everywhere function build_fs_Cs!(model::JuMP.Model, s::MySecondScenario, id_scen::ScenarioId)

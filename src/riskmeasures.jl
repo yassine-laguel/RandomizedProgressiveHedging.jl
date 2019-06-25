@@ -24,7 +24,7 @@ function cvar_problem(pb::Problem, cvar::CVar)
 
         con1 = @constraint(model, maxval >= 0)
         con2 = @constraint(model, maxval >= objexpr - η)
-        return vcat(η, y), cvarobj, union(isnothing(ctrref) ? [] : ctrref, [con1, con2])
+        return vcat(η, y), cvarobj, union(ctrref, [con1, con2])
     end
 
 

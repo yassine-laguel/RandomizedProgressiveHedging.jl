@@ -59,7 +59,7 @@ end
     objexpr = C*sum(p) + sum(y)
     ## NOTE: term in y are not present in original objective, but enforce unicity of solution, enabling comparison of solutions
 
-    return Y, objexpr, nothing
+    return Y, objexpr, []
 end
 
 

@@ -69,7 +69,7 @@ end
 
     Y = collect(Iterators.flatten([ union(ys[(t-1)*B+1:t*B], qs[(t-1)*B+1:t*B], e[t]) for t in 1:T] ))
 
-    return Y, objexpr, nothing
+    return Y, objexpr, []
 end
 
 

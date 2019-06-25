@@ -71,7 +71,7 @@ end
     objexpr = @expression(model, sum(sum(c_H[i]*ys[(t-1)B + i] for i in 1:B) + c_E * e[t] for t in 1:T))
     Y = collect(Iterators.flatten([ union(ys[(t-1)*B+1:t*B], qs[(t-1)*B+1:t*B], e[t]) for t in 1:T] ))
 
-    return Y, objexpr, nothing
+    return Y, objexpr, []
 end
 
 
