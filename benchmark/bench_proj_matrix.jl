@@ -69,35 +69,35 @@ main()
 #   5.157 s (96432206 allocations: 4.57 GiB)
 #   7.765 ms (14414 allocations: 1012.41 KiB)
 
-## After optimization (commit db7c99c624f1c88294f92a7a6d16c0fa837a55da)
+## After optimization (commit d0b2c6afe8fe5b29bdd992eff33ad82dd9e2cd09)
 # Hydrothermal scheduling pb
 # - #stages      : 5
 # - #scenarios   : 16
 # - #dims        : 15
-#   298.685 ns (11 allocations: 368 bytes)
-#   501.851 ns (0 allocations: 0 bytes)
-#   4.085 ms (4553 allocations: 279.61 KiB)
+#   122.583 ns (0 allocations: 0 bytes)
+#   485.656 ns (0 allocations: 0 bytes)
+#   3.810 ms (4553 allocations: 279.61 KiB)
 
 # Hydrothermal scheduling pb
 # - #stages      : 10
 # - #scenarios   : 512
 # - #dims        : 30
-#   6.227 μs (21 allocations: 640 bytes)
-#   24.311 μs (0 allocations: 0 bytes)
-#   5.398 ms (7827 allocations: 494.81 KiB)
+#   4.435 μs (0 allocations: 0 bytes)
+#   24.739 μs (0 allocations: 0 bytes)
+#   5.113 ms (7827 allocations: 494.81 KiB)
 
 # Hydrothermal scheduling pb
 # - #stages      : 15
 # - #scenarios   : 16384
 # - #dims        : 45
-#   191.479 μs (31 allocations: 928 bytes)
-#   1.321 ms (0 allocations: 0 bytes)
-#   6.756 ms (11146 allocations: 752.52 KiB)
+#   150.266 μs (0 allocations: 0 bytes)
+#   1.262 ms (0 allocations: 0 bytes)
+#   6.428 ms (11146 allocations: 752.52 KiB)
 
 # Hydrothermal scheduling pb
 # - #stages      : 20
 # - #scenarios   : 524288
 # - #dims        : 60
-#   6.603 ms (41 allocations: 1.17 KiB)
-#   77.354 ms (0 allocations: 0 bytes)
-#   7.315 ms (14405 allocations: 1011.92 KiB)
+#   5.099 ms (0 allocations: 0 bytes)
+#   73.810 ms (0 allocations: 0 bytes)
+#   8.214 ms (14423 allocations: 1012.89 KiB)

@@ -10,13 +10,13 @@ Compute the average trajectory defined by scenario `id_scen` over strategy `z`.
 """
 function _get_averagedtraj!(averaged_traj::Vector, pb::RPH.Problem, z::Matrix, id_scen::RPH.ScenarioId)
     nstages = pb.nstages
-    n = sum(length.(pb.stage_to_dim))
-    
-    averaged_traj .= 0
-    
+    n = 0
+    for stagedims in pb.stage_to_dim n+= length(stagedims) end
+
+
     scentree = pb.scenariotree
     stage = 1
-    id_curnode = scentree.idrootnode
+    id_curnode = RPH.STreeNodeId(scentree.idrootnode)
 
     while stage <= scentree.depth
         ## Get scenarios, dimension for current stage
@@ -24,23 +24,30 @@ function _get_averagedtraj!(averaged_traj::Vector, pb::RPH.Problem, z::Matrix, i
         stage_dims = pb.stage_to_dim[stage]
 
         ## update x section with average
-        sum_probas = sum(pb.probas[i] for i in scen_set)
+        sum_probas = 0.0
         for i in scen_set
-            for stage_dim in stage_dims
-                @inbounds averaged_traj[stage_dim] += pb.probas[i] * z[i, stage_dim] / sum_probas
+            @inbounds sum_probas += pb.probas[i]
+        end
+
+        for stage_dim in stage_dims
+            val = 0.0
+            for i in scen_set
+                @inbounds val += pb.probas[i] * z[i, stage_dim]
             end
+            @inbounds averaged_traj[stage_dim] = val / sum_probas
         end
 
         ## find node of following stage
         stage += 1
-        id_nextnode = nothing
+        id_nextnode::RPH.STreeNodeId, hasfound_nextnode = 0, false
         for id_child in scentree.vecnodes[id_curnode].childs
             if id_scen in scentree.vecnodes[id_child].scenarioset
                 id_nextnode = id_child
+                hasfound_nextnode = true
                 break
             end
         end
-        isnothing(id_nextnode) && stage < scentree.depth && @error "Tree dive, node of depth $stage not found."
+        !hasfound_nextnode && stage <= scentree.depth && begin @error "Tree dive, node of depth $stage not found."; return end
         id_curnode = id_nextnode
     end
     return
@@ -63,8 +70,10 @@ function main()
     z = rand(nscenarios, n)
     res = zeros(n)
 
+    # _get_averagedtraj!(res, pb, z, id_scen)
     @btime _get_averagedtraj!($res, $pb, $z, $id_scen)
-    # @time x = _get_averagedtraj(pb, z, id_scen)
+    # @timev _get_averagedtraj!(res, pb, z, id_scen)
+    @show norm(res - RPH.get_averagedtraj(pb, z, id_scen))
     return
 end
 
@@ -79,7 +88,7 @@ function profile_test(nrepeat)
 end
 
 
-main()
+# main()
 
 # Hydrothermal scheduling pb
 # - #stages      : 15
