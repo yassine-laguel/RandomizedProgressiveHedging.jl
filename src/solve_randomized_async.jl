@@ -156,7 +156,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     nworkers = length(workers())
     nstages = pb.nstages
     nscenarios = pb.nscenarios
-    n = sum(length.(pb.stage_to_dim))
+    n = get_scenariodim(pb)
     
     x = zeros(Float64, nworkers, n)
     step = zeros(Float64, n)
@@ -234,7 +234,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
             
             nwaitingworkers = maxdelay = 0
         end

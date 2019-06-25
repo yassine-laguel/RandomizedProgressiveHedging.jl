@@ -12,9 +12,9 @@ end
 
     y = @variable(model, [1:n], base_name="y_s$id_scen")
     objexpr = sum((y[i] - s.trajcenter[i])^2 for i in 1:n)
-    ctrref = @constraint(model, y .<= s.constraintbound)
+    @constraint(model, y .<= s.constraintbound)
     
-    return y, objexpr, ctrref
+    return y, objexpr, nothing
 end
 
 function build_simpleexample()

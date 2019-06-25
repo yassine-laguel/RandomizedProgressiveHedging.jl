@@ -63,17 +63,13 @@ struct CVar <: AbstractRiskMeasure
     p::Float64
 end
 
-function get_scenariodim(pb::Problem, ::Type{RiskNeutral})
+function get_scenariodim(pb::Problem)
     return sum(length.(pb.stage_to_dim))
 end
 
-function get_scenariodim(pb::Problem, cvar::CVar)
-    return sum(length.(pb.stage_to_dim))+1
-end
-
-
 include("Problem.jl")
 include("projections.jl")
+include("riskmeasures.jl")
 
 ## Solvers
 include("solve_direct.jl")

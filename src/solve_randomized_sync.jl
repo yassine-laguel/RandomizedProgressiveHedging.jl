@@ -21,8 +21,6 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
         @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
     end
-    # @show termination_status(model)
-    # @show primal_status(model)
 
     return JuMP.value.(y)
 end
@@ -68,7 +66,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
-    n = sum(length.(pb.stage_to_dim))
+    n = get_scenariodim(pb)
     
     x = zeros(Float64, n)
     y = zeros(Float64, n)
@@ -113,7 +111,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
         end
         
         it += 1

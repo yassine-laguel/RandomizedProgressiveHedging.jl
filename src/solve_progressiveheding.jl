@@ -64,7 +64,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
-    n = sum(length.(pb.stage_to_dim))
+    n = get_scenariodim(pb)
 
     y = zeros(Float64, nscenarios, n)
     x = zeros(Float64, nscenarios, n)
@@ -109,7 +109,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
         end
 
         it += 1
