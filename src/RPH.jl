@@ -27,6 +27,7 @@ mutable struct STreeNode
     father::Union{STreeNodeId, Nothing}
     childs::Vector{STreeNodeId}
     scenarioset::UnitRange{ScenarioId}
+    depth::Int64
 end
 
 struct ScenarioTree

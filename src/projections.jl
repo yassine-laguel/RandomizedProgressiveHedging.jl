@@ -5,15 +5,24 @@ Store in `x` the projection of `y` on the non-anticipatory subspace associated t
 """
 function nonanticipatory_projection!(x::Matrix{Float64}, pb::Problem, y::Matrix{Float64})
     @assert size(x) == size(y) "nonanticipatory_projection!(): input and output arrays should have same size"
-    depth_to_partition = get_partitionbydepth(pb.scenariotree)
+    
+    nnodes = length(pb.scenariotree.vecnodes)
+    vecnodes = pb.scenariotree.vecnodes
+    
+    for node in pb.scenariotree.vecnodes
+        stage_dims = pb.stage_to_dim[node.depth]
+        scenset = node.scenarioset
 
-    for (stage, scen_partition) in enumerate(depth_to_partition)
-        stage_dims = pb.stage_to_dim[stage]
-        for scen_set in scen_partition
-            averaged_traj = sum(pb.probas[i]*y[i, stage_dims] for i in scen_set) / sum(pb.probas[i] for i in scen_set)
-            for scen in scen_set
-                x[scen, stage_dims] = averaged_traj
+        for stage_dim in stage_dims
+            val = 0.0
+            sumpb = 0.0
+            for i in scenset
+                @inbounds val += pb.probas[i] * y[i, stage_dim]
+                @inbounds sumpb += pb.probas[i]
             end
+            val /= sumpb
+
+            @inbounds x[scenset, stage_dim] .= val
         end
     end
     return

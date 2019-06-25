@@ -100,7 +100,7 @@ function ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
             end
 
             ## Write current node
-            vecnodes[id_nextnode] = STreeNode(id_father, childs, ur)
+            vecnodes[id_nextnode] = STreeNode(id_father, childs, ur, cur_depth)
             
             ## Reference current node as child of id_father
             if !isnothing(id_father)
@@ -127,7 +127,7 @@ function ScenarioTree(; depth::Int, nbranching::Int)
 
     vecnodes = Vector{RPH.STreeNode}(undef, nnodes)
     
-    vecnodes[1] = RPH.STreeNode(nothing, Int[], 1:nscenarios)
+    vecnodes[1] = RPH.STreeNode(nothing, Int[], 1:nscenarios, 1)
     ind_node_prevdepth::RPH.STreeNodeId = 1
     ind_node_curdepth::RPH.STreeNodeId = 2
 
@@ -148,7 +148,7 @@ function ScenarioTree(; depth::Int, nbranching::Int)
             for ind_child in 0:nbranching-1
                 cur_start = cur_stop + 1
                 cur_stop = cur_start + subsetlength-1
-                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop) # Time spent here
+                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop, cur_depth) # Time spent here
             end
             vecnodes[ind_node_prevdepth].childs = Vector{RPH.STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1) # Time spent here
             
