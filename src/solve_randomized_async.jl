@@ -281,7 +281,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     z_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, z_feas)
     
-    printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
+    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
     printlev>0 && println("Computation time: ", time() - tinit)
     
     ## Terminate all workers

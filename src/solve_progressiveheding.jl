@@ -119,7 +119,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     objval = objective_value(pb, x)
     dot_xu = dot(pb, x, u)
 
-    printlev>0 && mod(it, printstep) == 1 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
+    printlev>0 && mod(it, printstep) != 1 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
     printlev>0 && println("Computation time: ", time() - tinit)
 
     return x

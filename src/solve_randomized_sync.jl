@@ -128,7 +128,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
         end
         
         it += 1
@@ -139,7 +139,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
     
-    printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e % .16e\n" it steplength objval
+    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e % .16e\n" it steplength objval
     printlev>0 && println("Computation time: ", time() - tinit)
 
     return x_feas
