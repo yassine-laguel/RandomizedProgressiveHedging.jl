@@ -1,8 +1,7 @@
 struct SubproblemTask{T}
+    taskid::Int
     scenario::T
     id_scenario::ScenarioId
-    build_subpb::Function
-    μ::Float64
     v_scen::Vector{Float64}
 end
 
@@ -14,28 +13,34 @@ the scenario `id_scen`.
 """
 function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
     params = take!(paramschan)
+    μ = params[:μ]
+    build_fs = params[:build_fs]
+
     while true
         try
             t0 = time()
             subpbtask::SubproblemTask = take!(inwork)
 
-            if subpbtask.id_scenario == -1  # Work finished
+            if subpbtask.taskid == -1  # Work finished
                 return
             end
 
-            # do work
             model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
             
             # Get scenario objective function, build constraints in model
-            y, obj, ctrref = subpbtask.build_subpb(model, subpbtask.scenario, subpbtask.id_scenario)
+            y, obj, ctrref = build_fs(model, subpbtask.scenario, subpbtask.id_scenario)
             
-            obj += (1/2*subpbtask.μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
+            obj += (1/2*μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
             
             @objective(model, Min, obj)
 
             optimize!(model)
+            if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
+                @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+            end
 
-            put!(outres, JuMP.value.(y))        
+            put!(outres, (JuMP.value.(y), subpbtask.taskid))
+            # println(time()-t0)
         catch e
             println("Worker error:")
             println(e)
@@ -51,61 +56,38 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
         return
     end
 
-    work_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{SubproblemTask{T}}(3), worker_id) for worker_id in workers())
-    results_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Vector{Float64}}(3), worker_id) for worker_id in workers())
-    params_channels = OrderedDict(worker_id => RemoteChannel(()->Channel{Dict{Symbol,Any}}(3), worker_id) for worker_id in workers())
+    nworkers = length(workers())
+
+    work_channel = RemoteChannel(()->Channel{SubproblemTask{T}}(nworkers))
+    results_channel = RemoteChannel(()->Channel{Tuple{Vector{Float64}, Int}}(nworkers))
+    params_channel = RemoteChannel(()->Channel{Dict{Symbol,Any}}(nworkers))
     
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, worker_id, work_channels[worker_id], results_channels[worker_id], params_channels[worker_id]) for worker_id in workers())
+    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, 
+                                                              worker_id, 
+                                                              work_channel,
+                                                              results_channel,
+                                                              params_channel) for worker_id in workers())
     for w_id in workers()
-        put!(params_channels[w_id], subpbparams)
+        put!(params_channel, subpbparams)
     end
 
-    return work_channels, results_channels, params_channels, remotecalls_futures
+    return work_channel, results_channel, params_channel, remotecalls_futures
 end
 
-function terminate_workers(pb, work_channels, remotecalls_futures)
+function terminate_workers(pb, work_channel, remotecalls_futures)
     closing_task = SubproblemTask(
-        pb.scenarios[1],
         -1,                 ## Stop signal
-        isnothing,
-        0.0,
-        [0.0],
+        pb.scenarios[1],
+        0,
+        [0.0]
     )
-    for (w_id, worker_wkchan) in work_channels
-        put!(worker_wkchan, closing_task)
+    for w_id in workers()
+        put!(work_channel, closing_task)
     end
 
     for (w_id, worker) in remotecalls_futures
         wait(worker)
     end
-    return
-end
-
-function get_oldest_readyworker(results_channels, it, worker_to_launchit, nwaitingworkers, maxdelay)
-    ## Wait for a worker to complete its job
-    ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
-    while length(ready_workers) == 0
-        ready_workers = OrderedSet(w_id for (w_id, reschan) in results_channels if isready(reschan))
-    end
-    
-    ## Get oldest ready worker id
-    worker_to_delay = SortedDict(w_id=>it-worker_to_launchit[w_id] for w_id in ready_workers)
-
-    return argmax(worker_to_delay), max(nwaitingworkers, length(ready_workers)), max(maxdelay, maximum(values(worker_to_delay)))
-end
-
-function giveworkertask!(work_channels, worker_to_launchit, worker_to_scen, it, cur_worker, pb, id_scen, μ, v)
-    task = SubproblemTask(
-        pb.scenarios[id_scen],
-        id_scen,
-        pb.build_subpb,
-        μ,
-        v,
-    )
-    
-    put!(work_channels[cur_worker], task)
-    worker_to_launchit[cur_worker] = it
-    worker_to_scen[cur_worker] = id_scen
     return
 end
 
@@ -161,6 +143,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     x = zeros(Float64, nworkers, n)
     step = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
+    x_feas = zeros(Float64, nscenarios, n)
     steplength = Inf
     
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
@@ -171,7 +154,6 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     nwaitingworkers = maxdelay = 0
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
-    !isnothing(hist) && (hist[:number_waitingworkers] = Int32[])
     !isnothing(hist) && (hist[:maxdelay] = Int32[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
@@ -179,79 +161,99 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
+    subpbparams[:μ] = μ
+    subpbparams[:build_fs] = pb.build_subpb    
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
 
     printlev>0 && printstyled("Launching remotecalls... ", color=:red)
-    work_channels, results_channels, params_channels, remotecalls_futures = init_workers(pb, subpbparams)
+    work_channel, results_channel, params_channel, remotecalls_futures = init_workers(pb, subpbparams)
     printlev>0 && printstyled("Done.\n", color=:red)
-    worker_to_scen = OrderedDict{Int, ScenarioId}()
-    worker_to_launchit = OrderedDict{Int, ScenarioId}()
-    worker_to_wid = SortedDict{Int, Int}(worker=>wid for (wid, worker) in enumerate(workers())) # workers() -> 1:nworkers map for x matrix
+    
+    taskid_to_xcoord = OrderedDict{Int, ScenarioId}()
+    taskid_to_idscen = OrderedDict{Int, ScenarioId}()
+    taskid_to_launchit = OrderedDict{Int, Int}()
+    cur_taskid = 0
 
     ## Feeding every worker with one task
-    for w_id in workers()
+    for (x_coord, w_id) in enumerate(workers())
         id_scen = rand(rng, scen_sampling_distrib)
-        giveworkertask!(work_channels, worker_to_launchit, worker_to_scen, 0, w_id, pb, id_scen, μ, zeros(n))
+        put!(work_channel, SubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, zeros(n)))
+
+        taskid_to_xcoord[cur_taskid] = x_coord
+        taskid_to_idscen[cur_taskid] = id_scen
+        taskid_to_launchit[cur_taskid] = 0
+        cur_taskid += 1
     end
 
     it = 0
     tinit = time()
-    printlev>0 && @printf "   it   residual            objective                 τ    maxdelay  #waitingworkers\n"
+    printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
     while it < maxiter && time()-tinit < maxtime
         ## Wait for a worker to complete job, take max delay one if several
-        cur_worker, nwaitingworkers, maxdelay = get_oldest_readyworker(results_channels, it, worker_to_launchit, nwaitingworkers, maxdelay)
 
-        y = take!(results_channels[cur_worker])
-        id_scen = worker_to_scen[cur_worker]
+        # @time begin 
+            y, taskid = take!(results_channel)
+            x_coord = taskid_to_xcoord[taskid]; delete!(taskid_to_xcoord, taskid)
+            id_scen = taskid_to_idscen[taskid]; delete!(taskid_to_idscen, taskid)
+            task_launchit = taskid_to_launchit[taskid]; delete!(taskid_to_launchit, taskid)
+            delay = it-task_launchit
 
-        ## z update
-        τ = max(τ, it-minimum(values(worker_to_launchit)))
-        η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
-    
-        step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[worker_to_wid[cur_worker], :])
-        z[id_scen, :] += step
-        
-        ## Draw new scenario for worker, build v and task
-        id_scen = rand(scen_sampling_distrib)
-        
-        @views get_averagedtraj!(x[worker_to_wid[cur_worker], :], pb, z, id_scen)
-        v = 2*x[worker_to_wid[cur_worker], :] - z[id_scen, :]
+            ## z update
+            τ = max(τ, it-task_launchit)
+            η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
 
-        giveworkertask!(work_channels, worker_to_launchit, worker_to_scen, it, cur_worker, pb, id_scen, μ, v)
+            step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[x_coord, :])
+            z[id_scen, :] += step
+        # end
 
-        # invariants, indicators, prints
-        !isnothing(hist) && push!(hist[:number_waitingworkers], nwaitingworkers)
-        !isnothing(hist) && push!(hist[:maxdelay], maxdelay)
+        ## Draw new scenario for task, build v
+        # @time begin 
+            id_scen = rand(scen_sampling_distrib)
 
-        if mod(it, printstep) == 0
-            x_feas = nonanticipatory_projection(pb, z)
-            objval = objective_value(pb, x_feas)
-            steplength = norm(step)
+            @views get_averagedtraj!(x[x_coord, :], pb, z, id_scen)
+            v = 2*x[x_coord, :] - z[id_scen, :]
+
+            put!(work_channel, SubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, v))
+
+            taskid_to_xcoord[cur_taskid] = x_coord
+            taskid_to_idscen[cur_taskid] = id_scen
+            taskid_to_launchit[cur_taskid] = it
+            cur_taskid += 1
             
-            printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
+        # end
 
-            !isnothing(hist) && push!(hist[:functionalvalue], objval)
-            !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
-            
-            nwaitingworkers = maxdelay = 0
-        end
+        # @time begin 
+            # invariants, indicators, prints
+            !isnothing(hist) && push!(hist[:maxdelay], maxdelay)
+
+            if mod(it, printstep) == 0
+                nonanticipatory_projection!(x_feas, pb, z)
+                objval = objective_value(pb, x_feas)
+                steplength = norm(step)
+                
+                printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
+
+                !isnothing(hist) && push!(hist[:functionalvalue], objval)
+                !isnothing(hist) && push!(hist[:time], time() - tinit)
+                !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))                
+            end
+        # end
         
         it += 1
     end
-    
+
     ## Get final solution
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
     
-    printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e   % .16e  %3i  %3i       %3i\n" it steplength objval τ maxdelay nwaitingworkers
+    printlev>0 && mod(it, printstep) == 1 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ maxdelay
     printlev>0 && println("Computation time: ", time() - tinit)
     
     ## Terminate all workers
     printlev>0 && printstyled("Terminating nodes...\n", color=:red)
-    terminate_workers(pb, work_channels, remotecalls_futures)
+    terminate_workers(pb, work_channel, remotecalls_futures)
 
     return x_feas
 end

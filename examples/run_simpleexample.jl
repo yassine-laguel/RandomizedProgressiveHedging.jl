@@ -39,17 +39,17 @@ function main()
     display(y_PH)
     println("")
     
-    # #########################################################
-    # ## Problem solve: synchronous (un parallelized) version of PH
-    # y_synch = solve_randomized_sync(pb, maxtime=1.5, printstep=10)
-    # println("\nSynchronous solve output is:")
-    # display(y_synch)
+    #########################################################
+    ## Problem solve: synchronous (un parallelized) version of PH
+    y_synch = solve_randomized_sync(pb, maxtime=1.5, printstep=10)
+    println("\nSynchronous solve output is:")
+    display(y_synch)
     
-    # # #########################################################
-    # # ## Problem solve: asynchronous (parallelized) version of PH
-    # y_asynch = solve_randomized_async(pb, maxtime=1.5, printstep=10, hist=hist)
-    # println("Asynchronous solve output is:")
-    # display(y_asynch)
+    #########################################################
+    ## Problem solve: asynchronous (parallelized) version of PH
+    y_asynch = solve_randomized_async(pb, maxtime=1.5, printstep=10, hist=hist)
+    println("Asynchronous solve output is:")
+    display(y_asynch)
 
     @show norm(y_direct - y_PH)
     @show norm(y_direct - y_synch)
