@@ -50,30 +50,29 @@ function main()
         :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
     ))
 
+    ## Set number of seeds to be tried
+    maxtime = 3*60*60
+    maxiter = 1e9
+    seeds = 1:3
+
     ## Build algorithms & params used for solve
     algorithms = []
 
     push!(algorithms, OrderedDict(
         :algoname => "progressivehedging",
         :fnsolve_symbol => :solve_progressivehedging,
-        :maxtime => 60*60,
-        :maxiter => 1e9,
+        :maxtime => maxtime,
+        :maxiter => maxiter,
+        :seeds => 1,
     ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_sync",
         :fnsolve_symbol => :solve_randomized_sync,
-        :maxtime => 60*60,
-        :maxiter => 1e9,
-    ))
-    push!(algorithms, OrderedDict(
-        :algoname => "randomized_async",
-        :fnsolve_symbol => :solve_randomized_async,
-        :maxtime => 60*60,
-        :maxiter => 1e9,
+        :maxtime => maxtime,
+        :maxiter => maxiter,
+        :seeds => seeds,
     ))
 
-    ## Set number of seeds to be tried
-    seeds = 1:5
 
     println("Experiment summarys:")
     println("  #problems:  ", length(problems))
@@ -97,12 +96,17 @@ function main()
         println("\n- [", String(Dates.format(now(), "HHhMMmSS")), "] Dealing with new problem:")
         println(pb)
 
+        
+        algo_to_seedhist = OrderedDict{String, Any}()
+        algo_to_seedhist["seeds"] = collect(seeds)
+
+
         ## First, solve pb up to reasonable precision. Get optimal objective, solution.
-        println("[", String(Dates.format(now(), "HHhMMmSS")), "] Long solve for solution...")
+        println("[", String(Dates.format(now(), "HHhMMmSS")), "] Long ph solve...")
         xsol = nothing
         fopt = nothing
         try
-            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=3*60*60, maxiter=1e6, printstep=100)
+            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=4*60*60, maxiter=1e6, printstep=10)
             fopt = objective_value(pb, xsol)
         catch e
             println("Error during ph solve.")
@@ -110,36 +114,34 @@ function main()
         end
 
 
-        ## Then, run all algs
-        algo_to_seedhist = OrderedDict{String, Any}()
-
+        ## Then, run other algs
         for algo_descr in algorithms
             println("  - [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
             println(algo_descr[:fnsolve_symbol])
-            println("    nseeds:         ", seeds)
+            println("    nseeds:         ", algo_descr[:seeds])
             
             algo_to_seedhist[algo_descr[:algoname]] = OrderedDict()
-            algo_to_seedhist["seeds"] = collect(seeds)
+            algo_to_seedhist[algo_descr[:algoname]][:fnsolve_symbol] = algo_descr[:fnsolve_symbol]
+            algo_to_seedhist[algo_descr[:algoname]][:maxtime] = algo_descr[:maxtime]
+            algo_to_seedhist[algo_descr[:algoname]][:maxiter] = algo_descr[:maxiter]
             
-            for seed in seeds
+            fnsolve = eval(algo_descr[:fnsolve_symbol])
+
+            for seed in algo_descr[:seeds]
                 println("  - [", String(Dates.format(now(), "HHhMMmSS")), "] Solving for seed $seed")
 
                 ## Set up log object
                 hist = OrderedDict{Symbol, Any}()
                 !isnothing(fopt) && (hist[:fopt] = fopt)
-                !isnothing(fopt) && (hist[:approxsol] = xsol)
+                !isnothing(xsol) && (hist[:approxsol] = xsol)
 
-                fnsolve = eval(algo_descr[:fnsolve_symbol])
                 println("\n--------------------------------------------------------")
-                fnsolve(pb; maxtime=algo_descr[:maxtime], maxiter=algo_descr[:maxiter], hist=hist, seed=seed)
+                fnsolve(pb; maxtime=algo_descr[:maxtime], maxiter=algo_descr[:maxiter], hist=hist, seed=seed, ϵ_primal=1e-10, ϵ_dual=1e-10)
                 println("--------------------------------------------------------\n")
 
                 # Log seed, algo
                 haskey(hist, :approxsol) && delete!(hist, :approxsol)
                 algo_to_seedhist[algo_descr[:algoname]][seed] = hist
-                algo_to_seedhist[algo_descr[:algoname]][:fnsolve_symbol] = algo_descr[:fnsolve_symbol]
-                algo_to_seedhist[algo_descr[:algoname]][:maxtime] = algo_descr[:maxtime]
-                algo_to_seedhist[algo_descr[:algoname]][:maxiter] = algo_descr[:maxiter]
             end
         end
 
