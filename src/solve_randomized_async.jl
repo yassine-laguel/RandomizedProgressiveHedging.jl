@@ -96,7 +96,7 @@ function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, w
     xz_scen = zeros(get_scenariodim(pb))
     cur_scen = 1
     ## First, feed as many scenarios as there are workers
-    for id_worker in 1:length(workers())
+    for id_worker in 1:min(length(workers()), pb.nscenarios)
         put!(work_channel, SubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
         cur_scen += 1
     end
@@ -122,7 +122,7 @@ function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, w
 end
 
 
-function init_hist!(hist)
+function init_hist!(hist, printstep)
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && (hist[:maxdelay] = Int32[])
@@ -200,7 +200,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)      
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
     
-    init_hist!(hist)
+    init_hist!(hist, printstep)
     delay = 0
     subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 

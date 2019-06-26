@@ -46,8 +46,8 @@ can also be set. Return a feasible point `x`.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
-function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-3,
-                                               ϵ_dual = 1e-3,
+function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
+                                               ϵ_dual = 1e-4,
                                                μ = 3,
                                                maxtime = 3600,
                                                maxiter = 1e3,
