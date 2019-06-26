@@ -1,18 +1,11 @@
 # RPH.jl Documentation
 
-Hello there. Presentation of the module
+This module aims to solve multistage stochastic problems by randimized versions of the progressive hedging algorihthm.
 
+## Contents
 ```@contents
-Pages = ["index.md", "problem_example.md"]
+Pages = ["index.md", "quickstart.md", "reference.md"]
 ```
 
-## Building a problem
-lorem...
-
-## Solving a problem
-```@docs
-solve_direct(pb::Problem; solver = with_optimizer(Ipopt.Optimizer))
-solve_progressivehedging(pb::Problem)
-solve_randomized_sync(pb::Problem)
-solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
-```
+## Citing RPH.jl
+...

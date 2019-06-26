@@ -58,7 +58,7 @@ end
 
 
 """
-dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
+    dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
 
 Compute the weighted scalar product between strategies `x` and `y`.
 """

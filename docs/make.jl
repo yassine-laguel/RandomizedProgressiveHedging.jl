@@ -11,7 +11,8 @@ makedocs(
     sitename="RPH",
     pages = [
         "Home" => "index.md",
-        "Tutorial" => "problem_example.md",
+        "Tutorial" => "quickstart.md",
+        "API reference" => "reference.md",
     ],
     modules = [RPH]
 )
