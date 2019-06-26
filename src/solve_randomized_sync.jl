@@ -25,6 +25,19 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     return JuMP.value.(y)
 end
 
+function randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
+    printlev>0 && print("Initialisation... ")
+    
+    xz_scen = zeros(get_scenariodim(pb))
+    for id_scen in 1:pb.nscenarios
+        z[id_scen, :] = randomizedsync_subpbsolve(pb, id_scen, xz_scen, μ, subpbparams)
+        it += 1
+    end
+    nonanticipatory_projection!(z, pb, z)
+    printlev>0 && println("done")
+    return it
+end
+
 """
     solve_randomized_sync(pb::Problem)
 
@@ -88,6 +101,10 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     it = 0
     tinit = time()
     printlev>0 && @printf "   it   global residual   objective\n"
+
+    it = randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
+
+    printlev>0 && @printf "%5i   %.10e % .16e\n" it 0.0 objective_value(pb, z)
     while it < maxiter && time()-tinit < maxtime
         id_scen = rand(rng, scen_sampling_distrib)
 
