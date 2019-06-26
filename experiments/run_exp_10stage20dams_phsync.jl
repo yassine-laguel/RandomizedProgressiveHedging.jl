@@ -44,13 +44,9 @@ function main()
     #     :pb => build_simpleexample(),
     # ))
     push!(problems, OrderedDict(
-        :pbname => "simpleproblem",
-        :pb => build_simpleexample(),
+        :pbname => "hydrothermal_10stages_20dams",
+        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
     ))
-    # push!(problems, OrderedDict(
-    #     :pbname => "hydrothermal_10stages_20dams",
-    #     :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
-    # ))
 
     ## Set number of seeds to be tried
     maxtime = 3*60*60
