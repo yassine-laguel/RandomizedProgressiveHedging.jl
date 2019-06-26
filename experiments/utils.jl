@@ -32,7 +32,7 @@ function writelogs(problem_to_algo, logdir)
 end
 
 
-function runallalgs()
+function runallalgs(; runasync=true)
     pb = build_simpleexample()
 
     # y_direct = solve_direct(pb; printlev=0, optimizer=Ipopt.Optimizer)
@@ -40,19 +40,22 @@ function runallalgs()
     # # display(y_direct)
     # # println("")
 
+    print("solve_progressivehedging... ")
     y_PH = solve_progressivehedging(pb; printlev=0, maxtime=0.5)
-    println("solve_progressivehedging done")
+    println("done.")
     # println("\nSequential solve output is:")
     # display(y_PH)
     # println("")
 
+    print("solve_randomized_sync... ")
     y_synch = solve_randomized_sync(pb; printlev=0, maxtime=0.5)
-    println("solve_randomized_sync done")
+    println("done.")
     # println("\nSynchronous solve output is:")
     # display(y_synch)
     
-    y_asynch = solve_randomized_async(pb; printlev=0, maxtime=0.5)
-    println("solve_randomized_async done")
+    runasync && print("solve_randomized_async... ")
+    runasync && (y_asynch = solve_randomized_async(pb; printlev=0, maxtime=0.5))
+    runasync && println("done.")
     # println("Asynchronous solve output is:")
     # display(y_asynch)
 

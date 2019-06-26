@@ -2,19 +2,17 @@
 using Distributed, OarClusterManager
 
 @assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
-@assert get_ncoresmaster()+length(get_remotehosts())>1 "At least one worker should ba available for async alg."
 
 GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
 # GLOBAL_LOG_DIR = joinpath(".", "logdir")
 
 ## Add all available workers
-!(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
-addprocs(get_ncoresmaster()-1)
-length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
+# !(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
+# addprocs(get_ncoresmaster()-1)
+# length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
 
 ## Load relevant packages in all workers
-@everywhere push!(LOAD_PATH, pwd())
-@everywhere using RPH, JuMP
+using RPH, JuMP
 
 using GLPK, Ipopt, LinearAlgebra
 using DataStructures, Dates, DelimitedFiles, JSON
@@ -46,9 +44,13 @@ function main()
     #     :pb => build_simpleexample(),
     # ))
     push!(problems, OrderedDict(
-        :pbname => "hydrothermal_10stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
+        :pbname => "simpleproblem",
+        :pb => build_simpleexample(),
     ))
+    # push!(problems, OrderedDict(
+    #     :pbname => "hydrothermal_10stages_20dams",
+    #     :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
+    # ))
 
     ## Set number of seeds to be tried
     maxtime = 3*60*60
@@ -64,6 +66,7 @@ function main()
         :maxtime => maxtime,
         :maxiter => maxiter,
         :seeds => 1,
+        :printstep => 1,
     ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_sync",
@@ -71,6 +74,7 @@ function main()
         :maxtime => maxtime,
         :maxiter => maxiter,
         :seeds => seeds,
+        :printstep => 20,
     ))
 
 
@@ -85,24 +89,23 @@ function main()
     problem_to_algo["problem_names"] = [pb[:pbname] for pb in problems]
 
     ## Run all algorithms once to precompile everything
-    println("[", String(Dates.format(now(), "HHhMMmSS")), "] Running algs once to precompile...")
-    runallalgs()
+    println("[", String(Dates.format(now(), "HHhMM SS")), "] Running algs once to precompile...")
+    runallalgs(;runasync=false)
 
     ## Solve
     for problem_descr in problems
         @show problem_descr
         pb = problem_descr[:pb]
         pbname = problem_descr[:pbname]
-        println("\n- [", String(Dates.format(now(), "HHhMMmSS")), "] Dealing with new problem:")
+        println("\n- [", String(Dates.format(now(), "HHhMM SS")), "] Dealing with new problem:")
         println(pb)
 
         
         algo_to_seedhist = OrderedDict{String, Any}()
-        algo_to_seedhist["seeds"] = collect(seeds)
 
 
         ## First, solve pb up to reasonable precision. Get optimal objective, solution.
-        println("[", String(Dates.format(now(), "HHhMMmSS")), "] Long ph solve...")
+        println("[", String(Dates.format(now(), "HHhMM SS")), "] Long ph solve...")
         xsol = nothing
         fopt = nothing
         try
@@ -116,19 +119,20 @@ function main()
 
         ## Then, run other algs
         for algo_descr in algorithms
-            println("  - [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
+            println("\n  - [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
             println(algo_descr[:fnsolve_symbol])
-            println("    nseeds:         ", algo_descr[:seeds])
+            println("    seeds:         ", algo_descr[:seeds])
             
             algo_to_seedhist[algo_descr[:algoname]] = OrderedDict()
             algo_to_seedhist[algo_descr[:algoname]][:fnsolve_symbol] = algo_descr[:fnsolve_symbol]
             algo_to_seedhist[algo_descr[:algoname]][:maxtime] = algo_descr[:maxtime]
             algo_to_seedhist[algo_descr[:algoname]][:maxiter] = algo_descr[:maxiter]
-            
+            algo_to_seedhist[algo_descr[:algoname]][:seeds] = algo_descr[:seeds]
+
             fnsolve = eval(algo_descr[:fnsolve_symbol])
 
             for seed in algo_descr[:seeds]
-                println("  - [", String(Dates.format(now(), "HHhMMmSS")), "] Solving for seed $seed")
+                println("  - [", String(Dates.format(now(), "HHhMM SS")), "] Solving for seed $seed")
 
                 ## Set up log object
                 hist = OrderedDict{Symbol, Any}()
@@ -136,7 +140,13 @@ function main()
                 !isnothing(xsol) && (hist[:approxsol] = xsol)
 
                 println("\n--------------------------------------------------------")
-                fnsolve(pb; maxtime=algo_descr[:maxtime], maxiter=algo_descr[:maxiter], hist=hist, seed=seed, ϵ_primal=1e-10, ϵ_dual=1e-10)
+                fnsolve(pb; maxtime = algo_descr[:maxtime], 
+                            maxiter = algo_descr[:maxiter], 
+                            printstep = algo_descr[:printstep],
+                            hist = hist, 
+                            seed = seed, 
+                            ϵ_primal = 1e-10, 
+                            ϵ_dual = 1e-10)
                 println("--------------------------------------------------------\n")
 
                 # Log seed, algo
@@ -153,10 +163,10 @@ function main()
     end
 
     ## Write log information
-    println("[", String(Dates.format(now(), "HHhMMmSS")), "] All computations are completed. Writing logs.")
+    println("[", String(Dates.format(now(), "HHhMM SS")), "] All computations are completed. Writing logs.")
     writelogs(problem_to_algo, logdir)
 
-    println("[", String(Dates.format(now(), "HHhMMmSS")), "] All done.")
+    println("[", String(Dates.format(now(), "HHhMM SS")), "] All done.")
     return
 end
 
