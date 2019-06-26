@@ -86,7 +86,7 @@ function main()
     problem_to_algo["problem_names"] = [pb[:pbname] for pb in problems]
 
     ## Run all algorithms once to precompile everything
-    println("Running algs once to precompile...")
+    println("[", String(Dates.format(now(), "HHhMMmSS")), "] Running algs once to precompile...")
     runallalgs()
 
     ## Solve
@@ -94,15 +94,15 @@ function main()
         @show problem_descr
         pb = problem_descr[:pb]
         pbname = problem_descr[:pbname]
-        println("\n- [", String(Dates.format(now(), "HHhMM")), "] Dealing with new problem:")
+        println("\n- [", String(Dates.format(now(), "HHhMMmSS")), "] Dealing with new problem:")
         println(pb)
 
         ## First, solve pb up to reasonable precision. Get optimal objective, solution.
-        println("Long solve for solution...")
+        println("[", String(Dates.format(now(), "HHhMMmSS")), "] Long solve for solution...")
         xsol = nothing
         fopt = nothing
         try
-            xsol = solve_progressivehedging(pb, ϵ_primal=1e-5, ϵ_dual=1e-5, maxtime=3*60*60, maxiter=1e6, printstep=100)
+            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=3*60*60, maxiter=1e6, printstep=100)
             fopt = objective_value(pb, xsol)
         catch e
             println("Error during ph solve.")
@@ -122,7 +122,7 @@ function main()
             algo_to_seedhist["seeds"] = collect(seeds)
             
             for seed in seeds
-                println("  - Solving for seed $seed")
+                println("  - [", String(Dates.format(now(), "HHhMMmSS")), "] Solving for seed $seed")
 
                 ## Set up log object
                 hist = OrderedDict{Symbol, Any}()
@@ -151,10 +151,10 @@ function main()
     end
 
     ## Write log information
-    println("All computations are completed. Writing logs.")
+    println("[", String(Dates.format(now(), "HHhMMmSS")), "] All computations are completed. Writing logs.")
     writelogs(problem_to_algo, logdir)
 
-    println("All done.")
+    println("[", String(Dates.format(now(), "HHhMMmSS")), "] All done.")
     return
 end
 
