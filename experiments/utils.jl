@@ -54,7 +54,7 @@ function runallalgs(; runasync=true)
     # display(y_synch)
     
     runasync && print("solve_randomized_async... ")
-    runasync && (y_asynch = solve_randomized_async(pb; printlev=0, maxtime=0.5))
+    runasync && (y_asynch = solve_randomized_async(pb; printlev=0, maxtime=20))
     runasync && println("done.")
     # println("Asynchronous solve output is:")
     # display(y_asynch)

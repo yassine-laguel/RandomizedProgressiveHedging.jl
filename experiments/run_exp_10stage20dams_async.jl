@@ -31,6 +31,7 @@ function main()
     println("- ENV[\"OAR_NODEFILE\"]: ", get(ENV, "OAR_NODEFILE", ""))
     println("  # available cores on master node : ", get_ncoresmaster())
     println("  # available remote cores         : ", length(get_remotehosts()))
+    println("  # workers()                      : ", length(workers()))
 
     ## Set up logging directory
     logdir = set_logdir()
@@ -59,18 +60,12 @@ function main()
     algorithms = []
 
     push!(algorithms, OrderedDict(
-        :algoname => "progressivehedging",
-        :fnsolve_symbol => :solve_progressivehedging,
-        :maxtime => maxtime,
-        :maxiter => maxiter,
-        :seeds => 1,
-    ))
-    push!(algorithms, OrderedDict(
-        :algoname => "randomized_sync",
-        :fnsolve_symbol => :solve_randomized_sync,
+        :algoname => "randomized_async",
+        :fnsolve_symbol => :solve_randomized_async,
         :maxtime => maxtime,
         :maxiter => maxiter,
         :seeds => seeds,
+        :printstep => 20,
     ))
 
 
@@ -85,24 +80,23 @@ function main()
     problem_to_algo["problem_names"] = [pb[:pbname] for pb in problems]
 
     ## Run all algorithms once to precompile everything
-    println("[", String(Dates.format(now(), "HHhMMmSS")), "] Running algs once to precompile...")
-    runallalgs()
+    println("[", String(Dates.format(now(), "HHhMM SS")), "] Running algs once to precompile...")
+    runallalgs(;runasync=true)
 
     ## Solve
     for problem_descr in problems
         @show problem_descr
         pb = problem_descr[:pb]
         pbname = problem_descr[:pbname]
-        println("\n- [", String(Dates.format(now(), "HHhMMmSS")), "] Dealing with new problem:")
+        println("\n- [", String(Dates.format(now(), "HHhMM SS")), "] Dealing with new problem:")
         println(pb)
 
         
         algo_to_seedhist = OrderedDict{String, Any}()
-        algo_to_seedhist["seeds"] = collect(seeds)
 
 
         ## First, solve pb up to reasonable precision. Get optimal objective, solution.
-        println("[", String(Dates.format(now(), "HHhMMmSS")), "] Long ph solve...")
+        println("[", String(Dates.format(now(), "HHhMM SS")), "] Long ph solve...")
         xsol = nothing
         fopt = nothing
         try
@@ -116,19 +110,21 @@ function main()
 
         ## Then, run other algs
         for algo_descr in algorithms
-            println("  - [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
+            println("\n  - [", String(Dates.format(now(), "HHhMM")), "] Running algo:")
             println(algo_descr[:fnsolve_symbol])
-            println("    nseeds:         ", algo_descr[:seeds])
+            println("    seeds:         ", algo_descr[:seeds])
             
             algo_to_seedhist[algo_descr[:algoname]] = OrderedDict()
             algo_to_seedhist[algo_descr[:algoname]][:fnsolve_symbol] = algo_descr[:fnsolve_symbol]
             algo_to_seedhist[algo_descr[:algoname]][:maxtime] = algo_descr[:maxtime]
             algo_to_seedhist[algo_descr[:algoname]][:maxiter] = algo_descr[:maxiter]
+            algo_to_seedhist[algo_descr[:algoname]][:seeds] = algo_descr[:seeds]
+            algo_to_seedhist[algo_descr[:algoname]][:nworkers] = length(workers())
             
             fnsolve = eval(algo_descr[:fnsolve_symbol])
 
             for seed in algo_descr[:seeds]
-                println("  - [", String(Dates.format(now(), "HHhMMmSS")), "] Solving for seed $seed")
+                println("  - [", String(Dates.format(now(), "HHhMM SS")), "] Solving for seed $seed")
 
                 ## Set up log object
                 hist = OrderedDict{Symbol, Any}()
@@ -136,7 +132,13 @@ function main()
                 !isnothing(xsol) && (hist[:approxsol] = xsol)
 
                 println("\n--------------------------------------------------------")
-                fnsolve(pb; maxtime=algo_descr[:maxtime], maxiter=algo_descr[:maxiter], hist=hist, seed=seed, ϵ_primal=1e-10, ϵ_dual=1e-10)
+                fnsolve(pb; maxtime = algo_descr[:maxtime], 
+                            maxiter = algo_descr[:maxiter], 
+                            printstep = algo_descr[:printstep],
+                            hist = hist, 
+                            seed = seed, 
+                            ϵ_primal = 1e-10, 
+                            ϵ_dual = 1e-10)
                 println("--------------------------------------------------------\n")
 
                 # Log seed, algo
@@ -153,10 +155,10 @@ function main()
     end
 
     ## Write log information
-    println("[", String(Dates.format(now(), "HHhMMmSS")), "] All computations are completed. Writing logs.")
+    println("[", String(Dates.format(now(), "HHhMM SS")), "] All computations are completed. Writing logs.")
     writelogs(problem_to_algo, logdir)
 
-    println("[", String(Dates.format(now(), "HHhMMmSS")), "] All done.")
+    println("[", String(Dates.format(now(), "HHhMM SS")), "] All done.")
     return
 end
 
