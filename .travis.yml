@@ -4,6 +4,9 @@ os:
   - linux
 julia:
   - 1.1
+env:
+  global:
+    - CI_NODE_TOTAL=2
 notifications:
   email: false
 # jobs:
