@@ -23,6 +23,11 @@ ScenarioId = Int64
 ## Scenario tree
 const STreeNodeId = Int32
 
+"""
+    STreeNode
+
+TODO
+"""
 mutable struct STreeNode
     father::Union{STreeNodeId, Nothing}
     childs::Vector{STreeNodeId}
@@ -30,6 +35,11 @@ mutable struct STreeNode
     depth::Int64
 end
 
+"""
+    ScenarioTree
+
+Todo
+"""
 struct ScenarioTree
     vecnodes::Vector{STreeNode}
     idrootnode::Int
@@ -43,6 +53,11 @@ include("ScenarioTree.jl")
 # Assumptions:
 # - scenid takes values from 1 to nscenarios
 # - stages takes values from 1 to nstages
+"""
+    Problem{T}
+
+TODO
+"""
 struct Problem{T}
     scenarios::Vector{T}
     build_subpb::Function
@@ -64,6 +79,11 @@ struct CVar <: AbstractRiskMeasure
     p::Float64
 end
 
+"""
+    get_scenariodim(pb::Problem)
+
+TODO
+"""
 function get_scenariodim(pb::Problem)
     return sum(length.(pb.stage_to_dim))
 end

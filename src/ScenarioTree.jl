@@ -13,7 +13,7 @@ function print(io::IO, tree::ScenarioTree)
 end
 
 """
-get_neighbydepth(tree::STreeNode, scenid::ScenarioId)
+    get_neighbydepth(tree::STreeNode, scenid::ScenarioId)
 
 Compute the leaves neighbooring `scenid` per level.
 """
@@ -64,7 +64,7 @@ function get_partitionbydepth(tree::ScenarioTree)
 end
 
 """
-ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
+    ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
 
 Build the scenario tree from a description in partition by level.
 """
@@ -117,7 +117,7 @@ function ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
 end
 
 """
-ScenarioTree(; depth::Int, nbranching::Int)
+    ScenarioTree(; depth::Int, nbranching::Int)
 
 Build a scenario tree of given `depth`, and node degree `nbranching`.
 """

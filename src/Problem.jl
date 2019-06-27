@@ -1,3 +1,8 @@
+"""
+    Problem(scenarios::Vector{T}, buildsubpb::Function, probas::Vector{Float64}, stage_to_dim::Vector{UnitRange{Int}}, stagetoscenpart::Vector{OrderedSet{BitSet}}) where T<:AbstractScenario
+
+TODO
+"""
 function Problem(scenarios::Vector{T}, buildsubpb::Function, probas::Vector{Float64}, stage_to_dim::Vector{UnitRange{Int}}, stagetoscenpart::Vector{OrderedSet{BitSet}}) where T<:AbstractScenario
 
     nstages = length(stagetoscenpart)
@@ -13,7 +18,11 @@ function Base.show(io::IO, pb::Problem)
     print(io, " - #dims     :   $(sum(length.(pb.stage_to_dim)))\n")
 end
 
-
+"""
+    objective_value(pb, x)
+ 
+TODO
+"""
 function objective_value(pb, x)
     optimizer=Ipopt.Optimizer
     optimizer_params = Dict{Symbol, Any}(:print_level=>0)

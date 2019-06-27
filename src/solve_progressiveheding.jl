@@ -1,4 +1,9 @@
-function subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
+"""
+    ph_subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
+
+TODO
+"""
+function ph_subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     n = sum(length.(pb.stage_to_dim))
     
     ## Regalurized problem
@@ -88,7 +93,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
 
         # Subproblem solves
         for id_scen in 1:nscenarios
-            y[id_scen, :] = subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, subpbparams)
+            y[id_scen, :] = ph_subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, subpbparams)
         end
 
         # projection on non anticipatory subspace

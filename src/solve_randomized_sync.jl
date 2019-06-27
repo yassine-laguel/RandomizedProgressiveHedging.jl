@@ -1,5 +1,5 @@
 """
-randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
+    randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`xz_scen`)' where 'f_s' is the cost function associated with 
 the scenario `id_scen`.
@@ -25,6 +25,11 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     return JuMP.value.(y)
 end
 
+"""
+    randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
+
+TODO
+"""
 function randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
     printlev>0 && print("Initialisation... ")
     

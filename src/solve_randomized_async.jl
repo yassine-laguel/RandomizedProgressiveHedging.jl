@@ -1,3 +1,8 @@
+"""
+    SubproblemTask{T}
+
+TODO
+"""
 struct SubproblemTask{T}
     taskid::Int
     scenario::T
@@ -6,7 +11,7 @@ struct SubproblemTask{T}
 end
 
 """
-do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
+    do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with 
 the scenario `id_scen`.
@@ -49,7 +54,11 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
 end
 
 
+"""
+    init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
 
+TODO
+"""
 function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
     if workers() == Vector([1])
         @error "No workers available. Returning"
@@ -74,6 +83,11 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
     return work_channel, results_channel, params_channel, remotecalls_futures
 end
 
+"""
+    terminate_workers(pb, work_channel, remotecalls_futures)
+
+TODO
+"""
 function terminate_workers(pb, work_channel, remotecalls_futures)
     closing_task = SubproblemTask(
         -1,                 ## Stop signal
@@ -91,6 +105,11 @@ function terminate_workers(pb, work_channel, remotecalls_futures)
     return
 end
 
+"""
+    randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+
+TODO
+"""
 function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     printlev>0 && print("Initialisation... ")
     xz_scen = zeros(get_scenariodim(pb))

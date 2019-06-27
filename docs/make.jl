@@ -12,7 +12,10 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Tutorial" => "quickstart.md",
-        "API reference" => "reference.md",
+        "Library" => Any[
+            "Public" => "public_api.md",
+            "Internal" => "internal_api.md",
+        ],
     ],
     modules = [RPH]
 )
