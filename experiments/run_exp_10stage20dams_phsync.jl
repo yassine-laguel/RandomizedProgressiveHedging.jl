@@ -12,6 +12,7 @@ GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
 # length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
 
 ## Load relevant packages in all workers
+push!(LOAD_PATH, pwd())
 using RPH, JuMP
 
 using GLPK, Ipopt, LinearAlgebra
