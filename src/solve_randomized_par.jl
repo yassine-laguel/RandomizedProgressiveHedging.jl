@@ -242,7 +242,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
         z_prev = copy(z)
         
         ## Draw a scenario, build v, send task
-        tab_id_scen = randperm(pb.nscenarios)[1:nworkers]
+        tab_id_scen = randperm(pb.nscenarios)[1:min(nworkers,pb.nscenarios)]
 
         ## For all available workers
         for id_scen in tab_id_scen
