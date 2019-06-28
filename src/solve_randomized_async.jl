@@ -243,7 +243,8 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     ## Feeding every worker with one task
     for (x_coord, w_id) in enumerate(workers())
         id_scen = rand(rng, scen_sampling_distrib)
-        put!(work_channel, AsyncSubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, zeros(n)))
+        v = 2*x[x_coord, :] - z[id_scen, :]
+        put!(work_channel, AsyncSubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, v))
 
         taskid_to_xcoord[cur_taskid] = x_coord
         taskid_to_idscen[cur_taskid] = id_scen
