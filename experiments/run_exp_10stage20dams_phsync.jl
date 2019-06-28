@@ -45,8 +45,8 @@ function main()
     #     :pb => build_simpleexample(),
     # ))
     push!(problems, OrderedDict(
-        :pbname => "hydrothermal_10stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
+        :pbname => "hydrothermal_7stages_20dams",
+        :pb => build_hydrothermalextended_problem(;nstages=7, ndams=20),
     ))
 
     ## Set number of seeds to be tried
