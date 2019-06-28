@@ -67,6 +67,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
 function solve_randomized_sync(pb::Problem; μ = 3,
+                                            ϵ = 1e-13,
                                             qdistr = nothing,
                                             maxtime = 3600,
                                             maxiter = 1e4,
@@ -110,7 +111,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     it = randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
 
     printlev>0 && @printf "%5i   %.10e % .16e\n" it 0.0 objective_value(pb, z)
-    while it < maxiter && time()-tinit < maxtime
+    while steplength>ϵ && it < maxiter && time()-tinit < maxtime
         id_scen = rand(rng, scen_sampling_distrib)
 
         ## Projection

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 #import matplotlib2tikz
 import tkinter as tk
 from tkinter import filedialog
+import os
 
 
 root = tk.Tk()
@@ -14,6 +15,18 @@ file_path = filedialog.askopenfilename()
 f = open(file_path)
 data = json.load(f)
 f.close()
+
+
+# define the name of the directory to be created
+path = "./results/"
+
+try:  
+    os.mkdir(path)
+except OSError:  
+    print ("Figures will be saved in %s " % os.path.realpath("./results/"))
+else:  
+    print ("Figures will be saved in %s (created)" % os.path.realpath("./results/"))
+
 
 
 pbnames = data["problem_names"]
@@ -50,7 +63,7 @@ for pb in pbnames:
             #fmin = min(F)
 
     ########################################
-    ### SUBOPTIMALITY vs CALLS
+    ### SUBOPTIMALITY vs CALLS 
     ########################################
     plt.figure()
     for alg in algorithms:
@@ -61,13 +74,51 @@ for pb in pbnames:
             C = [step*i for i in range(len(F))]
 
             plt.plot(C,F,label=names[alg],color=colors[alg])
+
     plt.ylabel("Suboptimality")
     plt.xlabel("Number of scenarios treated")
     plt.yscale('log', nonposy='clip')
     plt.legend()
-    plt.savefig("./Figs/Subopt_Calls"+pb+".png")
+    plt.savefig(path+"Subopt_Calls"+pb+".png")
     #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
 
+
+    ########################################
+    ### SUBOPTIMALITY vs ALL
+    ########################################
+    plt.figure()
+    for alg in algorithms:
+        if alg in results:
+            
+            if type(results[alg]["seeds"]) == int:
+                seeds = ['1']
+                Nruns = 1
+            else:
+                seeds = [str(e) for e in results[alg]["seeds"]]
+                Nruns = len(seeds)
+
+            RES = results[alg]["1"]
+            step = results[alg]["1"]["logstep"]
+            F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            C = [step*i for i in range(len(F))]
+
+            plt.plot(C,F,label=names[alg],color=colors[alg])
+
+            for run in range(2,Nruns):
+                srun = seeds[run]
+                RES = results[alg][srun]
+                step = results[alg][srun]["logstep"]
+                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                C = [step*i for i in range(len(F))]
+
+                plt.plot(C,F,color=colors[alg])
+    
+    plt.ylabel("Suboptimality")
+    plt.xlabel("Number of scenarios treated")
+    plt.yscale('log', nonposy='clip')
+    plt.legend()
+    plt.savefig(path+"ALL_Subopt_Calls"+pb+".png")
+    #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
 
     ########################################
     ### SUBOPTIMALITY vs TIME
@@ -78,12 +129,54 @@ for pb in pbnames:
             RES = results[alg]["1"]
             F =  [(f- fmin)/fmin for f in RES["functionalvalue"]]
             T = RES["time"]
+
             plt.plot(T,F,label=names[alg],color=colors[alg])
+
     plt.ylabel("Suboptimality")
     plt.xlabel("Time (s)")
     plt.yscale('log', nonposy='clip')
     plt.legend()
-    plt.savefig("./Figs/Subopt_Time"+pb+".png")
+    plt.savefig(path+"Subopt_Time"+pb+".png")
+    #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
+
+
+    ########################################
+    ### SUBOPTIMALITY vs TIME
+    ########################################
+    plt.figure()
+    for alg in algorithms:
+        if alg in results:
+
+                        
+            if type(results[alg]["seeds"]) == int:
+                seeds = ['1']
+                Nruns = 1
+            else:
+                seeds = [str(e) for e in results[alg]["seeds"]]
+                Nruns = len(seeds)
+
+
+            RES = results[alg]["1"]
+            F =  [(f- fmin)/fmin for f in RES["functionalvalue"]]
+            T = RES["time"]
+            
+            plt.plot(T,F,label=names[alg],color=colors[alg])
+
+
+            for run in range(2,Nruns):
+                srun = seeds[run]
+                RES = results[alg][srun]
+                step = results[alg][srun]["logstep"]
+                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                T = RES["time"]
+
+                plt.plot(T,F,color=colors[alg])
+
+    plt.ylabel("Suboptimality")
+    plt.xlabel("Time (s)")
+    plt.yscale('log', nonposy='clip')
+    plt.legend()
+    plt.savefig(path+"ALL_Subopt_Time"+pb+".png")
     #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
 
 
@@ -135,6 +228,6 @@ for pb in pbnames:
     plt.xlabel("Number of scenarios treated")
     plt.legend()
     plt.yscale('log', nonposy='clip')
-    plt.savefig("./Figs/SuboptFill_Calls"+pb+".png")
+    plt.savefig(path+"SuboptFill_Calls"+pb+".png")
     #matplotlib2tikz.save("./Tex/SuboptFill_Calls.tex")
 

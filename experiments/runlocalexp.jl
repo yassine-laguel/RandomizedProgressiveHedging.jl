@@ -50,9 +50,9 @@ function main()
     nscenarios = 2^5
 
     ## Set number of seeds to be tried
-    maxtime = 3*60
-    maxiter = 1e3
-    seeds = 1:5
+    maxtime = 90
+    maxiter = 400
+    seeds = 1:4
 
     ## Build algorithms & params used for solve
     algorithms = []
@@ -142,7 +142,7 @@ function main()
         xsol = nothing
         fopt = nothing
         try
-            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=4*60*60, maxiter=1e6, printstep=10)
+            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=2*maxtime, maxiter=2*maxiter, printstep=10)
             fopt = objective_value(pb, xsol)
         catch e
             println("Error during ph solve.")
