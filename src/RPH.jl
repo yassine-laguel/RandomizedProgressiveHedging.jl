@@ -96,11 +96,12 @@ include("riskmeasures.jl")
 include("solve_direct.jl")
 include("solve_progressiveheding.jl")
 include("solve_randomized_sync.jl")
+include("solve_randomized_par.jl")
 include("solve_randomized_async.jl")
 
 export AbstractScenario, ScenarioId, Problem, ScenarioTree, objective_value
 export AbstractRiskMeasure, RiskNeutral, CVar
-export solve_direct, solve_progressivehedging, solve_randomized_sync, solve_randomized_async
+export solve_direct, solve_progressivehedging, solve_randomized_sync,  solve_randomized_par,  solve_randomized_async
 
 ## Test problems
 

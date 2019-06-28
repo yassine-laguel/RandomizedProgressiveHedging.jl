@@ -1,9 +1,9 @@
 """
-    SubproblemTask{T}
+    AsyncSubproblemTask{T}
 
 TODO
 """
-struct SubproblemTask{T}
+struct AsyncSubproblemTask{T}
     taskid::Int
     scenario::T
     id_scenario::ScenarioId
@@ -11,12 +11,12 @@ struct SubproblemTask{T}
 end
 
 """
-    do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
+    do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with 
 the scenario `id_scen`.
 """
-function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
+function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
     params = take!(paramschan)
     μ = params[:μ]
     build_fs = params[:build_fs]
@@ -24,7 +24,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
     while true
         try
             t0 = time()
-            subpbtask::SubproblemTask = take!(inwork)
+            subpbtask::AsyncSubproblemTask = take!(inwork)
 
             if subpbtask.taskid == -1  # Work finished
                 return
@@ -55,11 +55,11 @@ end
 
 
 """
-    init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
+    init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
 
 TODO
 """
-function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
+function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
     if workers() == Vector([1])
         @error "No workers available. Returning"
         return
@@ -67,11 +67,11 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
 
     nworkers = length(workers())
 
-    work_channel = RemoteChannel(()->Channel{SubproblemTask{T}}(nworkers))
+    work_channel = RemoteChannel(()->Channel{AsyncSubproblemTask{T}}(nworkers))
     results_channel = RemoteChannel(()->Channel{Tuple{Vector{Float64}, Int}}(nworkers))
     params_channel = RemoteChannel(()->Channel{Dict{Symbol,Any}}(nworkers))
     
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, 
+    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work_async, 
                                                               worker_id, 
                                                               work_channel,
                                                               results_channel,
@@ -84,12 +84,12 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
 end
 
 """
-    terminate_workers(pb, work_channel, remotecalls_futures)
+    terminate_workers_async(pb, work_channel, remotecalls_futures)
 
 TODO
 """
-function terminate_workers(pb, work_channel, remotecalls_futures)
-    closing_task = SubproblemTask(
+function terminate_workers_async(pb, work_channel, remotecalls_futures)
+    closing_task = AsyncSubproblemTask(
         -1,                 ## Stop signal
         pb.scenarios[1],
         0,
@@ -106,17 +106,17 @@ function terminate_workers(pb, work_channel, remotecalls_futures)
 end
 
 """
-    randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
 
 TODO
 """
-function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+function randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     printlev>0 && print("Initialisation... ")
     xz_scen = zeros(get_scenariodim(pb))
     cur_scen = 1
     ## First, feed as many scenarios as there are workers
     for id_worker in 1:min(length(workers()), pb.nscenarios)
-        put!(work_channel, SubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
+        put!(work_channel, AsyncSubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
         cur_scen += 1
     end
 
@@ -128,7 +128,7 @@ function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, w
 
         ## Submitting new task if necessary
         if cur_scen <= pb.nscenarios
-            put!(work_channel, SubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
+            put!(work_channel, AsyncSubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
             cur_scen += 1
         end
         it += 1
@@ -225,7 +225,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
-    work_channel, results_channel, params_channel, remotecalls_futures = init_workers(pb, subpbparams)
+    work_channel, results_channel, params_channel, remotecalls_futures = init_workers_async(pb, subpbparams)
     
     taskid_to_xcoord = Dict{Int, ScenarioId}()
     taskid_to_idscen = Dict{Int, ScenarioId}()
@@ -236,14 +236,14 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     tinit = time()
     printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
 
-    it = randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    it = randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     
     printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it 0.0 objective_value(pb, z) τ 0
     
     ## Feeding every worker with one task
     for (x_coord, w_id) in enumerate(workers())
         id_scen = rand(rng, scen_sampling_distrib)
-        put!(work_channel, SubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, zeros(n)))
+        put!(work_channel, AsyncSubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, zeros(n)))
 
         taskid_to_xcoord[cur_taskid] = x_coord
         taskid_to_idscen[cur_taskid] = id_scen
@@ -271,7 +271,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         @views get_averagedtraj!(x[x_coord, :], pb, z, id_scen)
         v = 2*x[x_coord, :] - z[id_scen, :]
 
-        put!(work_channel, SubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, v))
+        put!(work_channel, AsyncSubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, v))
 
         taskid_to_xcoord[cur_taskid] = x_coord
         taskid_to_idscen[cur_taskid] = id_scen
@@ -304,7 +304,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     printlev>0 && println("Computation time: ", time() - tinit)
     
     ## Terminate all workers
-    terminate_workers(pb, work_channel, remotecalls_futures)
+    terminate_workers_async(pb, work_channel, remotecalls_futures)
 
     return z_feas
 end
