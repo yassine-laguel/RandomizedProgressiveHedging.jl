@@ -217,7 +217,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)      
     
     
-    init_hist!(hist, printstep)
+    init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
     
     subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 

@@ -14,6 +14,7 @@ using DataStructures, Dates, DelimitedFiles, JSON
 
 include("../examples/build_simpleexample.jl")
 include("../examples/build_hydrothermalscheduling_extended.jl")
+include("../examples/build_hydrothermalscheduling_milp.jl")
 include("utils.jl")
 
 
@@ -35,16 +36,23 @@ function main()
         :pbname => "simpleproblem",
         :pb => build_simpleexample(),
     ))
-#=     push!(problems, OrderedDict(
+    push!(problems, OrderedDict(
         :pbname => "hydrothermal_5stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=5, ndams=20),
-    )) =#
+        :pb => build_hydrothermalextended_problem(;nstages=6, ndams=10),
+    ))
+    push!(problems, OrderedDict(
+        :pbname => "hydrothermal_5stages_20dams",
+        :pb => build_hydrothermalextendedmilp_problem(;nstages=6, ndams=10),
+    ))
 
+
+    nworkers = length(workers())
+    nscenarios = 2^5
 
     ## Set number of seeds to be tried
     maxtime = 3*60
     maxiter = 1e3
-    seeds = 1:3
+    seeds = 1:5
 
     ## Build algorithms & params used for solve
     algorithms = []
@@ -58,27 +66,50 @@ function main()
         :printstep => 1,
     ))
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_sync",
+        :algoname => "randomized_sync0.001",
         :fnsolve_symbol => :solve_randomized_sync,
         :maxtime => maxtime,
-        :maxiter => maxiter,
+        :maxiter => maxiter*nscenarios,
         :seeds => seeds,
+        :mu => 0.001,
         :printstep => 20,
     ))
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_sync1",
+        :fnsolve_symbol => :solve_randomized_sync,
+        :maxtime => maxtime,
+        :maxiter => maxiter*nscenarios,
+        :seeds => seeds,
+        :mu => 1,
+        :printstep => 20,
+    ))
+
+
     push!(algorithms, OrderedDict(
         :algoname => "randomized_par",
         :fnsolve_symbol => :solve_randomized_par,
         :maxtime => maxtime,
-        :maxiter => maxiter,
+        :maxiter => maxiter*nscenarios/nworkers,
         :seeds => seeds,
         :printstep => 20,
     ))
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_async",
+        :algoname => "randomized_async1",
         :fnsolve_symbol => :solve_randomized_async,
         :maxtime => maxtime,
-        :maxiter => maxiter,
+        :maxiter => maxiter*nscenarios,
         :seeds => seeds,
+        :mu => 1,
+        :printstep => 20,
+    ))
+
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_async0.0001",
+        :fnsolve_symbol => :solve_randomized_async,
+        :maxtime => maxtime,
+        :maxiter => maxiter*nscenarios,
+        :seeds => seeds,
+        :mu => 0.0001,
         :printstep => 20,
     ))
 

@@ -16,9 +16,9 @@ data = json.load(f)
 f.close()
 
 
-names = data["problem_names"]
+pbnames = data["problem_names"]
 
-for pb in names:
+for pb in pbnames:
 
     results = data[pb] # RESULTS PARTS
 
@@ -30,10 +30,16 @@ for pb in names:
 
 
 
-    algorithms = {"progressivehedging","randomized_sync","randomized_async"}
-    names = { "progressivehedging" : "Progressive Hedging" , "randomized_sync": "Randomized Progressive Hedging"  , "randomized_async": "Asynchronous Randomized Progressive Hedging" }
-    colors = { "progressivehedging" : "black" , "randomized_sync": "blue"  , "randomized_async": "red" }
+    algorithms = results.keys()
 
+    cmap = plt.get_cmap("nipy_spectral")
+    colors_val = cmap(np.linspace(0, 1, len(algorithms)))
+
+    names = {}
+    colors = {}
+    for (i,n) in enumerate(algorithms):
+        names[n] = n
+        colors[n] = colors_val[i]
 
     for alg in algorithms:
         if alg in results:
@@ -50,12 +56,10 @@ for pb in names:
     for alg in algorithms:
         if alg in results:
             RES = results[alg]["1"]
+            step = results[alg]["1"]["logstep"]
             F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            C = [step*i for i in range(len(F))]
 
-            if alg == "progressivehedging":
-                C = [S*i for i in range(len(F))]
-            else:
-                C = range(len(F))
             plt.plot(C,F,label=names[alg],color=colors[alg])
     plt.ylabel("Suboptimality")
     plt.xlabel("Number of scenarios treated")
@@ -91,8 +95,15 @@ for pb in names:
     fig,ax = plt.subplots()
     for alg in algorithms:
         if alg in results:
-            seeds = [str(e) for e in results[alg]["seeds"]]
-            Nruns = len(seeds)
+            step = results[alg]["1"]["logstep"]
+
+            if type(results[alg]["seeds"]) == int:
+                seeds = ['1']
+                Nruns = 1
+            else:
+                seeds = [str(e) for e in results[alg]["seeds"]]
+                Nruns = len(seeds)
+            
             F = list()
             for i in range(Nruns):
                 F.append([])
@@ -114,11 +125,9 @@ for pb in names:
                 Fmin.append(vmin)
                 Fmax.append(vmax)
             
+            C = [step*i for i in range(len(Fmin))]
 
-            if alg == "progressivehedging":
-                C = [S*i for i in range(len(Fmin))]
-            else:
-                C = range(len(Fmin))
+
             ax.plot(C,Fmin,label=names[alg],color=colors[alg])
             ax.plot(C,Fmax,color=colors[alg])
             ax.fill_between(C,Fmin,Fmax,facecolor=colors[alg], alpha=0.5)

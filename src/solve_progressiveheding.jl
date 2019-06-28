@@ -79,7 +79,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    !isnothing(hist) && (hist[:logstep] = printstep)
+    !isnothing(hist) && (hist[:logstep] = printstep*nscenarios)
 
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
