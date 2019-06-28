@@ -3,15 +3,6 @@
 ## Scenario tree
 ```@docs
 RPH.STreeNode
-
-```
-
-## Projections
-```@docs
-RPH.get_averagedtraj
-RPH.get_averagedtraj!
-RPH.nonanticipatory_projection
-RPH.nonanticipatory_projection!
 ```
 
 ## Progressive hedging
@@ -25,13 +16,25 @@ RPH.randomizedsync_initialization!
 RPH.randomizedsync_subpbsolve
 ```
 
+## Synchronous parallel
+TODO
+```@docs
+```
+
 ## Asynchronous
 ```@docs
-RPH.SubproblemTask
-RPH.do_remote_work
-RPH.randomizedasync_initialization!
-RPH.init_workers
-RPH.terminate_workers
+RPH.AsyncSubproblemTask
+RPH.do_remote_work_async
+RPH.randomizedasync_initialization_async!
+RPH.init_workers_async
+```
+
+## Projections
+```@docs
+RPH.get_averagedtraj
+RPH.get_averagedtraj!
+RPH.nonanticipatory_projection
+RPH.nonanticipatory_projection!
 ```
 
 ## Others

@@ -2,7 +2,7 @@ using Distributed
 
 @everywhere using Pkg
 @everywhere Pkg.activate(".")
-@everywhere Pkg.status()
+# @everywhere Pkg.status()
 
 using RPH, Ipopt
 using Juniper, Cbc
@@ -39,12 +39,12 @@ function main()
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_sync = solve_randomized_sync(pb, maxtime=20, printstep=10, optimizer=optimizer, optimizer_params=optimizer_params)
+    y_sync = solve_randomized_sync(pb, maxtime=3, printstep=10, optimizer=optimizer, optimizer_params=optimizer_params)
     println("\nSynchronous solve output is:")
     display(y_sync);
 
 
-        #########################################################
+    #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
     y_par = solve_randomized_par(pb, maxtime=20, printstep=10, optimizer=optimizer, optimizer_params=optimizer_params)
     println("\nParallel sollve output is:")

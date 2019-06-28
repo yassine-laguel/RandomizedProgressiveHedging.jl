@@ -83,11 +83,6 @@ function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:
     return work_channel, results_channel, params_channel, remotecalls_futures
 end
 
-"""
-    terminate_workers_async(pb, work_channel, remotecalls_futures)
-
-TODO
-"""
 function terminate_workers_async(pb, work_channel, remotecalls_futures)
     closing_task = AsyncSubproblemTask(
         -1,                 ## Stop signal
@@ -141,7 +136,7 @@ function randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev,
 end
 
 
-function init_hist!(hist, printstep)
+function init_hist_async!(hist, printstep)
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && (hist[:maxdelay] = Int32[])
@@ -150,7 +145,7 @@ function init_hist!(hist, printstep)
     return
 end
 
-function get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
+function get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
@@ -219,9 +214,9 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)      
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
     
-    init_hist!(hist, printstep)
+    init_hist_async!(hist, printstep)
     delay = 0
-    subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
+    subpbparams = get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)

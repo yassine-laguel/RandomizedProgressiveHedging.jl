@@ -2,7 +2,7 @@ using Distributed
 
 @everywhere using Pkg
 @everywhere Pkg.activate(".")
-@everywhere Pkg.status()
+# @everywhere Pkg.status()
 
 using RPH, Ipopt
 
