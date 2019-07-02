@@ -141,7 +141,7 @@ function randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev,
 end
 
 
-function init_hist!(hist, printstep)
+function init_hist_async!(hist, printstep)
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && (hist[:maxdelay] = Int32[])
@@ -150,7 +150,7 @@ function init_hist!(hist, printstep)
     return
 end
 
-function get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
+function get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
@@ -169,6 +169,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 ## Keyword arguments:
 - `μ`: Regularization parameter.
 - `c`: parameter for step length.
+- `stepsize`: if nothing uses theoretical formula for stepsize, otherwise uses constant numerical value.
 - `qdistr`: if not nothing, specifies the probablility distribution for scenario sampling.
 - `maxtime`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
@@ -188,6 +189,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 ϵ = 1e-13,
                                                 c = 0.9,
+                                                stepsize::Union{Nothing, Float64} = nothing,
                                                 qdistr = nothing,
                                                 maxtime = 3600,
                                                 maxiter = 1e5,
@@ -220,9 +222,9 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)      
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
     
-    init_hist!(hist, printstep)
+    init_hist_async!(hist, printstep)
     delay = 0
-    subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
+    subpbparams = get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
@@ -264,7 +266,11 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         τ = max(τ, delay)
         η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
 
-        step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[x_coord, :])
+        if isnothing(stepsize)
+            step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[x_coord, :])
+        else
+            step = stepsize
+        end
         z[id_scen, :] += step
 
         ## Draw new scenario, build v, send task
