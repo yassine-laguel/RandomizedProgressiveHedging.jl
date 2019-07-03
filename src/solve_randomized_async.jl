@@ -13,7 +13,7 @@ end
 """
     do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel)
 
-Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with 
+Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with
 the scenario `id_scen`.
 """
 function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
@@ -31,12 +31,12 @@ function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, para
             end
 
             model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
-            
+
             # Get scenario objective function, build constraints in model
             y, obj, ctrref = build_fs(model, subpbtask.scenario, subpbtask.id_scenario)
-            
+
             obj += (1/2*μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
-            
+
             @objective(model, Min, obj)
 
             optimize!(model)
@@ -70,9 +70,9 @@ function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:
     work_channel = RemoteChannel(()->Channel{AsyncSubproblemTask{T}}(nworkers))
     results_channel = RemoteChannel(()->Channel{Tuple{Vector{Float64}, Int}}(nworkers))
     params_channel = RemoteChannel(()->Channel{Dict{Symbol,Any}}(nworkers))
-    
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work_async, 
-                                                              worker_id, 
+
+    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work_async,
+                                                              worker_id,
                                                               work_channel,
                                                               results_channel,
                                                               params_channel) for worker_id in workers())
@@ -130,7 +130,7 @@ function randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev,
     end
 
     nonanticipatory_projection!(z, pb, z)
-    
+
     printlev>0 && println("done")
     return it
 end
@@ -150,7 +150,7 @@ function get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
     subpbparams[:μ] = μ
-    subpbparams[:build_fs] = pb.build_subpb    
+    subpbparams[:build_fs] = pb.build_subpb
     return subpbparams
 end
 
@@ -193,29 +193,30 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                                 optimizer = Ipopt.Optimizer,
                                                 optimizer_params = Dict{Symbol, Any}(:print_level=>0),
+                                                callback=nothing,
                                                 kwargs...) where T<:AbstractScenario
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - asynchronous")
     printlev>0 && println("--------------------------------------------------------")
-    
+
     # Variables
     nworkers = length(workers())
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = get_scenariodim(pb)
-    
+
     x = zeros(Float64, nworkers, n)
     z = zeros(Float64, nscenarios, n)
     z_feas = zeros(Float64, nscenarios, n)
     step = zeros(Float64, n)
     steplength = Inf
-    
+
     ## Random scenario sampling
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
     scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
-    qmin = minimum(scen_sampling_distrib.p)      
+    qmin = minimum(scen_sampling_distrib.p)
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
-    
+
     init_hist_async!(hist, printstep)
     delay = 0
     subpbparams = get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
@@ -223,7 +224,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
     work_channel, results_channel, params_channel, remotecalls_futures = init_workers_async(pb, subpbparams)
-    
+
     taskid_to_xcoord = Dict{Int, ScenarioId}()
     taskid_to_idscen = Dict{Int, ScenarioId}()
     taskid_to_launchit = Dict{Int, Int}()
@@ -234,9 +235,9 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
 
     it = randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
-    
+
     printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it 0.0 objective_value(pb, z) τ 0
-    
+
     ## Feeding every worker with one task
     for (x_coord, w_id) in enumerate(workers())
         id_scen = rand(rng, scen_sampling_distrib)
@@ -250,7 +251,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     end
 
     while it < maxiter && time()-tinit < maxtime
-        
+
         y, taskid = take!(results_channel)
         x_coord = taskid_to_xcoord[taskid]; delete!(taskid_to_xcoord, taskid)
         id_scen = taskid_to_idscen[taskid]; delete!(taskid_to_idscen, taskid)
@@ -287,24 +288,27 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
             nonanticipatory_projection!(z_feas, pb, z)
             objval = objective_value(pb, z_feas)
             steplength = norm(step)
-            
+
             printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))                
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
+            if !isnothing(callback)
+                callback(pb, x, hist)
+            end
         end
-        
+
         it += 1
     end
 
     ## Get final solution
     z_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, z_feas)
-    
+
     printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
     printlev>0 && println("Computation time: ", time() - tinit)
-    
+
     ## Terminate all workers
     terminate_workers_async(pb, work_channel, remotecalls_futures)
 

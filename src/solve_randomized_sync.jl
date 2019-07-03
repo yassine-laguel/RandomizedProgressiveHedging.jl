@@ -1,7 +1,7 @@
 """
     randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
 
-Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`xz_scen`)' where 'f_s' is the cost function associated with 
+Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`xz_scen`)' where 'f_s' is the cost function associated with
 the scenario `id_scen`.
 """
 function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params::AbstractDict)
@@ -12,11 +12,11 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
 
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
-    
+
     # Augmented lagragian subproblem full objective
     obj += (1/2*μ) * sum((y[i] - xz_scen[i])^2 for i in 1:n) ## TODO: replace with more explicit formula for efficiency
     @objective(model, Min, obj)
-    
+
     optimize!(model)
     if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
         @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
@@ -32,7 +32,7 @@ TODO
 """
 function randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
     printlev>0 && print("Initialisation... ")
-    
+
     xz_scen = zeros(get_scenariodim(pb))
     for id_scen in 1:pb.nscenarios
         z[id_scen, :] = randomizedsync_subpbsolve(pb, id_scen, xz_scen, μ, subpbparams)
@@ -76,6 +76,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
                                             hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                             optimizer = Ipopt.Optimizer,
                                             optimizer_params = Dict{Symbol, Any}(:print_level=>0),
+                                            callback=nothing,
                                             kwargs...)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - synchronous")
@@ -85,15 +86,15 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = get_scenariodim(pb)
-    
+
     x = zeros(Float64, n)
     y = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
     steplength = Inf
-    
+
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
     scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
-    
+
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
@@ -128,14 +129,19 @@ function solve_randomized_sync(pb::Problem; μ = 3,
             x_feas = nonanticipatory_projection(pb, z)
             objval = objective_value(pb, x_feas)
             steplength = norm(x-y)
-            
+
             printlev>0 && @printf "%5i   %.10e % .16e\n" it steplength objval
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
             !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+
+            if !isnothing(callback)
+                callback(pb, x, hist)
+            end
+            
         end
-        
+
         it += 1
     end
 
@@ -143,7 +149,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     x_feas = nonanticipatory_projection(pb, z)
     objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
-    
+
     printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e % .16e\n" it steplength objval
     printlev>0 && println("Computation time: ", time() - tinit)
 

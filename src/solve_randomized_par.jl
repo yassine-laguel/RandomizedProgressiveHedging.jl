@@ -13,7 +13,7 @@ end
 """
     do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
 
-Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with 
+Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with
 the scenario `id_scen`.
 """
 function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
@@ -31,12 +31,12 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
             end
 
             model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
-            
+
             # Get scenario objective function, build constraints in model
             y, obj, ctrref = build_fs(model, subpbtask.scenario, subpbtask.id_scenario)
-            
+
             obj += (1/2*μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
-            
+
             @objective(model, Min, obj)
 
             optimize!(model)
@@ -70,9 +70,9 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
     work_channel = RemoteChannel(()->Channel{SubproblemTask{T}}(nworkers))
     results_channel = RemoteChannel(()->Channel{Tuple{Vector{Float64}, Int}}(nworkers))
     params_channel = RemoteChannel(()->Channel{Dict{Symbol,Any}}(nworkers))
-    
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work, 
-                                                              worker_id, 
+
+    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work,
+                                                              worker_id,
                                                               work_channel,
                                                               results_channel,
                                                               params_channel) for worker_id in workers())
@@ -135,7 +135,7 @@ function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, w
     end
 
     nonanticipatory_projection!(z, pb, z)
-    
+
     printlev>0 && println("done")
     return it
 end
@@ -154,7 +154,7 @@ function get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
     subpbparams[:μ] = μ
-    subpbparams[:build_fs] = pb.build_subpb    
+    subpbparams[:build_fs] = pb.build_subpb
     return subpbparams
 end
 
@@ -195,52 +195,53 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
                                                 hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                                 optimizer = Ipopt.Optimizer,
                                                 optimizer_params = Dict{Symbol, Any}(:print_level=>0),
+                                                callback=nothing,
                                                 kwargs...) where T<:AbstractScenario
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Randomized Progressive Hedging - parallel")
     printlev>0 && println("--------------------------------------------------------")
-    
+
     # Variables
     nworkers = length(workers())
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = get_scenariodim(pb)
-    
+
     x = zeros(Float64, nworkers, n)
     z = zeros(Float64, nscenarios, n)
     step = zeros(Float64, n)
     steplength = Inf
-    
+
     ## Random scenario sampling
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
     scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
-    qmin = minimum(scen_sampling_distrib.p)      
-    
-    
+    qmin = minimum(scen_sampling_distrib.p)
+
+
     init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
-    
+
     subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
     work_channel, results_channel, params_channel, remotecalls_futures = init_workers(pb, subpbparams)
-  
+
     it = 0
     tinit = time()
     printlev>0 && @printf "   it   residual            objective                \n"
 
     it = randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     x = copy(z)
-    
-    printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)  
-    
+
+    printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)
+
 
 
 
     while it < maxiter && time()-tinit < maxtime
-        
+
         z_prev = copy(z)
-        
+
         ## Draw a scenario, build v, send task
         tab_id_scen = zeros(Int, nworkers)
         for i in 1:nworkers
@@ -253,7 +254,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
         ## For all available workers
         for id_scen in tab_id_scen
-            
+
             v = 2*x[id_scen, :] - z[id_scen, :]
 
             put!(work_channel, SubproblemTask(id_scen, pb.scenarios[id_scen], id_scen, v))
@@ -269,27 +270,31 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
         x = nonanticipatory_projection(pb, z)
 
         if mod(it, printstep) == 0
-            
+
             objval = objective_value(pb, x)
             steplength = norm(z-z_prev)
-            
-            printlev>0 && @printf "%5i   %.10e   % .16e \n" it steplength objval 
+
+            printlev>0 && @printf "%5i   %.10e   % .16e \n" it steplength objval
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))                
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+
+            if !isnothing(callback)
+                callback(pb, x, hist)
+            end
         end
-        
+
         it += 1
     end
 
     ## Get final solution
 
     objval = objective_value(pb, x)
-    
-    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e\n" it steplength objval 
+
+    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e\n" it steplength objval
     printlev>0 && println("Computation time: ", time() - tinit)
-    
+
     ## Terminate all workers
     terminate_workers(pb, work_channel, remotecalls_futures)
 

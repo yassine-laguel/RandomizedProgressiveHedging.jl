@@ -5,17 +5,17 @@ TODO
 """
 function ph_subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     n = sum(length.(pb.stage_to_dim))
-    
+
     ## Regalurized problem
     model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
 
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
-    
+
     # Augmented lagragian subproblem full objective
     obj += dot(u_scen, y) + (1/2*μ) * sum((y[i]-x_scen[i])^2 for i in 1:n)
     @objective(model, Min, obj)
-    
+
     optimize!(model)
     # @show termination_status(model)
     # @show primal_status(model)
@@ -30,9 +30,9 @@ end
 """
     x = solve_progressivehedging(pb::Problem)
 
-Run the classical Progressive Hedging scheme on problem `pb`. 
+Run the classical Progressive Hedging scheme on problem `pb`.
 
-Stopping criterion is based on primal dual residual, maximum iterations or time 
+Stopping criterion is based on primal dual residual, maximum iterations or time
 can also be set. Return a feasible point `x`.
 
 ## Keyword arguments:
@@ -61,11 +61,12 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
                                                hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                                optimizer = Ipopt.Optimizer,
                                                optimizer_params = Dict{Symbol, Any}(:print_level=>0),
+                                               callback = nothing,
                                                kwargs...)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Progressive Hedging")
     printlev>0 && println("--------------------------------------------------------")
-    
+
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
@@ -84,7 +85,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
-    
+
     it = 0
     tinit = time()
     printlev>0 && @printf " it   primal res        dual res            dot(x,u)   objective\n"
@@ -102,7 +103,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
         # multiplier update
         u += (1/μ) * (y-x)
 
-        
+
         # invariants, indicators
         primres = norm(pb, x-y)
         dualres = (1/μ) * norm(pb, u - u_old)
@@ -115,6 +116,10 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
             !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+
+            if !isnothing(callback)
+                callback(pb, x, hist)
+            end
         end
 
         it += 1
