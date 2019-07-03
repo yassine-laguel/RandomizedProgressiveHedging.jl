@@ -7,7 +7,7 @@ using Distributed
 using RPH, Ipopt
 
 using Distributed
-using JuMP, RPH
+@everywhere using JuMP, RPH
 
 using DataStructures, LinearAlgebra, GLPK
 
