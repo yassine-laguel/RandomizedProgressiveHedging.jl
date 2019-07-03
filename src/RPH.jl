@@ -14,10 +14,61 @@ import LinearAlgebra: dot, norm
 
 ###############################################################################
 ## Scenario abstract type and functions definition
-abstract type AbstractScenario end
-
 ScenarioId = Int64
 
+"""
+    AbstractScenario
+
+Abstract type that user scenario concrete types should descend from.
+
+Example
+---
+```julia
+struct MyScenario <: AbstractScenario
+    value::Vector{Float64}
+end
+```
+
+"""
+abstract type AbstractScenario end
+
+"""
+    build_fs!(model::JuMP.Model, s::S, id_scen::ScenarioId) where S<:AbstractScenario
+
+Define variables, build the objective function, build and attach constraints relative 
+to the scenario `s`, of identifier `id_scen`, into the given JuMP `model`.
+
+Return value: a tuple of
+- array of subproblem variables
+- expression of objective function
+- array of references to constraints that define the objective, as opposed to constraints that define the feasible space.
+
+Example
+---
+
+```julia
+function build_fs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
+    nstages = length(s.value)
+
+    Y = @variable(model, [1:nstages], base_name="y_s\$id_scen")
+    m = @variable(model)
+
+    # feasibility constraints
+    @constraint(model, Y[:] .>= 0)
+
+    # objective constraints, enforcing m=maximum(Y)
+    max_ctrs = @constraint(model, [i in 1:stages], m .>= Y[i])
+    
+    objexpr = sum( (Y[i]-s.value[i])^2 for i in 1:nstages) + m
+
+    return Y, objexpr, max_ctrs
+end
+```
+"""
+function build_fs!(model::JuMP.Model, s::S, id_scen::ScenarioId) where S<:AbstractScenario
+    @error "build_fs!(): Not implemented for scenario type $S."
+    return
+end
 
 ###############################################################################
 ## Scenario tree
@@ -26,7 +77,8 @@ const STreeNodeId = Int32
 """
     STreeNode
 
-TODO
+Node object of the `ScenarioTree`. Reference its `father` node id and its `childs` ids, 
+along with the set of scenarios equivalent up to the `depth` (or stage) of the node.
 """
 mutable struct STreeNode
     father::Union{STreeNodeId, Nothing}
@@ -38,7 +90,12 @@ end
 """
     ScenarioTree
 
-Todo
+A tree structure to hold the *non-anticipativity* structure of a [`Problem`](@ref).
+
+All nodes are stored in the `vecnodes` vector, and referenced by their index.
+
+**Note**: The tree nodes should be indexed in such a way that all sets of equivalent scenarios be
+made of adjacent indices (`n1:n2`).
 """
 struct ScenarioTree
     vecnodes::Vector{STreeNode}
@@ -96,11 +153,12 @@ include("riskmeasures.jl")
 include("solve_direct.jl")
 include("solve_progressiveheding.jl")
 include("solve_randomized_sync.jl")
+include("solve_randomized_par.jl")
 include("solve_randomized_async.jl")
 
-export AbstractScenario, ScenarioId, Problem, ScenarioTree, objective_value
+export AbstractScenario, ScenarioId, Problem, ScenarioTree, objective_value, build_fs!
 export AbstractRiskMeasure, RiskNeutral, CVar
-export solve_direct, solve_progressivehedging, solve_randomized_sync, solve_randomized_async
+export solve_direct, solve_progressivehedging, solve_randomized_sync,  solve_randomized_par,  solve_randomized_async
 
 ## Test problems
 

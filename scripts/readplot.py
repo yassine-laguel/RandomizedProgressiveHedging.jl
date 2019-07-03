@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 #import matplotlib2tikz
 import tkinter as tk
 from tkinter import filedialog
+import os
 
 
 root = tk.Tk()
@@ -16,9 +17,21 @@ data = json.load(f)
 f.close()
 
 
-names = data["problem_names"]
+# define the name of the directory to be created
+path = "./results/"
 
-for pb in names:
+try:  
+    os.mkdir(path)
+except OSError:  
+    print ("Figures will be saved in %s " % os.path.realpath("./results/"))
+else:  
+    print ("Figures will be saved in %s (created)" % os.path.realpath("./results/"))
+
+
+
+pbnames = data["problem_names"]
+
+for pb in pbnames:
 
     results = data[pb] # RESULTS PARTS
 
@@ -30,10 +43,16 @@ for pb in names:
 
 
 
-    algorithms = {"progressivehedging","randomized_sync","randomized_async"}
-    names = { "progressivehedging" : "Progressive Hedging" , "randomized_sync": "Randomized Progressive Hedging"  , "randomized_async": "Asynchronous Randomized Progressive Hedging" }
-    colors = { "progressivehedging" : "black" , "randomized_sync": "blue"  , "randomized_async": "red" }
+    algorithms = results.keys()
 
+    cmap = plt.get_cmap("nipy_spectral")
+    colors_val = cmap(np.linspace(0, 1, len(algorithms)))
+
+    names = {}
+    colors = {}
+    for (i,n) in enumerate(algorithms):
+        names[n] = n
+        colors[n] = colors_val[i]
 
     for alg in algorithms:
         if alg in results:
@@ -44,26 +63,62 @@ for pb in names:
             #fmin = min(F)
 
     ########################################
-    ### SUBOPTIMALITY vs CALLS
+    ### SUBOPTIMALITY vs CALLS 
     ########################################
     plt.figure()
     for alg in algorithms:
         if alg in results:
             RES = results[alg]["1"]
+            step = results[alg]["1"]["logstep"]
             F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            C = [step*i for i in range(len(F))]
 
-            if alg == "progressivehedging":
-                C = [S*i for i in range(len(F))]
-            else:
-                C = range(len(F))
             plt.plot(C,F,label=names[alg],color=colors[alg])
+
     plt.ylabel("Suboptimality")
     plt.xlabel("Number of scenarios treated")
     plt.yscale('log', nonposy='clip')
     plt.legend()
-    plt.savefig("./Figs/Subopt_Calls"+pb+".png")
+    plt.savefig(path+"Subopt_Calls"+pb+".png")
     #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
 
+
+    ########################################
+    ### SUBOPTIMALITY vs ALL
+    ########################################
+    plt.figure()
+    for alg in algorithms:
+        if alg in results:
+            
+            if type(results[alg]["seeds"]) == int:
+                seeds = ['1']
+                Nruns = 1
+            else:
+                seeds = [str(e) for e in results[alg]["seeds"]]
+                Nruns = len(seeds)
+
+            RES = results[alg]["1"]
+            step = results[alg]["1"]["logstep"]
+            F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            C = [step*i for i in range(len(F))]
+
+            plt.plot(C,F,label=names[alg],color=colors[alg])
+
+            for run in range(2,Nruns):
+                srun = seeds[run]
+                RES = results[alg][srun]
+                step = results[alg][srun]["logstep"]
+                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                C = [step*i for i in range(len(F))]
+
+                plt.plot(C,F,color=colors[alg])
+    
+    plt.ylabel("Suboptimality")
+    plt.xlabel("Number of scenarios treated")
+    plt.yscale('log', nonposy='clip')
+    plt.legend()
+    plt.savefig(path+"ALL_Subopt_Calls"+pb+".png")
+    #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
 
     ########################################
     ### SUBOPTIMALITY vs TIME
@@ -74,12 +129,54 @@ for pb in names:
             RES = results[alg]["1"]
             F =  [(f- fmin)/fmin for f in RES["functionalvalue"]]
             T = RES["time"]
+
             plt.plot(T,F,label=names[alg],color=colors[alg])
+
     plt.ylabel("Suboptimality")
     plt.xlabel("Time (s)")
     plt.yscale('log', nonposy='clip')
     plt.legend()
-    plt.savefig("./Figs/Subopt_Time"+pb+".png")
+    plt.savefig(path+"Subopt_Time"+pb+".png")
+    #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
+
+
+    ########################################
+    ### SUBOPTIMALITY vs TIME
+    ########################################
+    plt.figure()
+    for alg in algorithms:
+        if alg in results:
+
+                        
+            if type(results[alg]["seeds"]) == int:
+                seeds = ['1']
+                Nruns = 1
+            else:
+                seeds = [str(e) for e in results[alg]["seeds"]]
+                Nruns = len(seeds)
+
+
+            RES = results[alg]["1"]
+            F =  [(f- fmin)/fmin for f in RES["functionalvalue"]]
+            T = RES["time"]
+            
+            plt.plot(T,F,label=names[alg],color=colors[alg])
+
+
+            for run in range(2,Nruns):
+                srun = seeds[run]
+                RES = results[alg][srun]
+                step = results[alg][srun]["logstep"]
+                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                T = RES["time"]
+
+                plt.plot(T,F,color=colors[alg])
+
+    plt.ylabel("Suboptimality")
+    plt.xlabel("Time (s)")
+    plt.yscale('log', nonposy='clip')
+    plt.legend()
+    plt.savefig(path+"ALL_Subopt_Time"+pb+".png")
     #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
 
 
@@ -91,8 +188,15 @@ for pb in names:
     fig,ax = plt.subplots()
     for alg in algorithms:
         if alg in results:
-            seeds = [str(e) for e in results[alg]["seeds"]]
-            Nruns = len(seeds)
+            step = results[alg]["1"]["logstep"]
+
+            if type(results[alg]["seeds"]) == int:
+                seeds = ['1']
+                Nruns = 1
+            else:
+                seeds = [str(e) for e in results[alg]["seeds"]]
+                Nruns = len(seeds)
+            
             F = list()
             for i in range(Nruns):
                 F.append([])
@@ -114,11 +218,9 @@ for pb in names:
                 Fmin.append(vmin)
                 Fmax.append(vmax)
             
+            C = [step*i for i in range(len(Fmin))]
 
-            if alg == "progressivehedging":
-                C = [S*i for i in range(len(Fmin))]
-            else:
-                C = range(len(Fmin))
+
             ax.plot(C,Fmin,label=names[alg],color=colors[alg])
             ax.plot(C,Fmax,color=colors[alg])
             ax.fill_between(C,Fmin,Fmax,facecolor=colors[alg], alpha=0.5)
@@ -126,6 +228,6 @@ for pb in names:
     plt.xlabel("Number of scenarios treated")
     plt.legend()
     plt.yscale('log', nonposy='clip')
-    plt.savefig("./Figs/SuboptFill_Calls"+pb+".png")
+    plt.savefig(path+"SuboptFill_Calls"+pb+".png")
     #matplotlib2tikz.save("./Tex/SuboptFill_Calls.tex")
 

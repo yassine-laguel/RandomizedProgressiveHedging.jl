@@ -44,7 +44,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
                 @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
             end
 
-            put!(outres, (JuMP.value.(y), subpbtask.taskid))
+            put!(outres, (JuMP.value.(y), subpbtask.id_scenario))
             # println(time()-t0)
         catch e
             println("Worker error:")
@@ -144,7 +144,6 @@ end
 function init_hist!(hist, printstep)
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
-    !isnothing(hist) && (hist[:maxdelay] = Int32[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     !isnothing(hist) && (hist[:logstep] = printstep)
     return
@@ -160,7 +159,7 @@ function get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 end
 
 """
-    solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
+    solve_randomized_par(pb::Problem{T}) where T<:AbstractScenario
 
 Run the Randomized Progressive Hedging scheme on problem `pb`. All workers should be available.
 
@@ -209,7 +208,6 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     
     x = zeros(Float64, nworkers, n)
     z = zeros(Float64, nscenarios, n)
-    z_feas = zeros(Float64, nscenarios, n)
     step = zeros(Float64, n)
     steplength = Inf
     
@@ -219,87 +217,81 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)      
     
     
-    init_hist!(hist, printstep)
+    init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
     
     subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
     work_channel, results_channel, params_channel, remotecalls_futures = init_workers(pb, subpbparams)
-    
-    taskid_to_xcoord = Dict{Int, ScenarioId}()
-    taskid_to_idscen = Dict{Int, ScenarioId}()
-    taskid_to_launchit = Dict{Int, Int}()
-    cur_taskid = 0
-
+  
     it = 0
     tinit = time()
-    printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
+    printlev>0 && @printf "   it   residual            objective                \n"
 
     it = randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    x = copy(z)
     
-    printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it 0.0 objective_value(pb, z) τ 0
+    printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)  
     
-    ## Feeding every worker with one task
-    for (x_coord, w_id) in enumerate(workers())
-        id_scen = rand(rng, scen_sampling_distrib)
-        put!(work_channel, SubproblemTask(cur_taskid, pb.scenarios[id_scen], id_scen, zeros(n)))
 
-        taskid_to_xcoord[cur_taskid] = x_coord
-        taskid_to_idscen[cur_taskid] = id_scen
-        taskid_to_launchit[cur_taskid] = it
-        cur_taskid += 1
-    end
+
 
     while it < maxiter && time()-tinit < maxtime
         
-        x = nonanticipatory_projection(pb, z)
-
-        ## For all available workers
-        for id_worker in 1:length(workers())
-            
-            ## Draw a scenario, build v, send task
-            id_scen = rand(scen_sampling_distrib)
-
-            v = 2*x[id_scen, :] - z[id_scen, :]
-
-            put!(work_channel, SubproblemTask(id_scen, pb.scenarios[id_scen], id_scen, z))
+        z_prev = copy(z)
+        
+        ## Draw a scenario, build v, send task
+        tab_id_scen = zeros(Int, nworkers)
+        for i in 1:nworkers
+            id_scen = rand(rng, scen_sampling_distrib)
+            while id_scen in tab_id_scen[1:i-1]
+                id_scen = rand(rng, scen_sampling_distrib)
+            end
+            tab_id_scen[i] = id_scen
         end
 
-        for resp_worker in 1:length(workers())
+        ## For all available workers
+        for id_scen in tab_id_scen
+            
+            v = 2*x[id_scen, :] - z[id_scen, :]
+
+            put!(work_channel, SubproblemTask(id_scen, pb.scenarios[id_scen], id_scen, v))
+        end
+
+        for resp_worker in tab_id_scen
             ## Taking current result
             y, id_scen = take!(results_channel)
 
             z[id_scen, :] += (y - x[id_scen, :])
         end
 
-        # invariants, indicators, prints
-        !isnothing(hist) && push!(hist[:maxdelay], delay)
+        x = nonanticipatory_projection(pb, z)
 
         if mod(it, printstep) == 0
-            nonanticipatory_projection!(z_feas, pb, z)
-            objval = objective_value(pb, z_feas)
-            steplength = norm(step)
             
-            printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
+            objval = objective_value(pb, x)
+            steplength = norm(z-z_prev)
+            
+            printlev>0 && @printf "%5i   %.10e   % .16e \n" it steplength objval 
 
             !isnothing(hist) && push!(hist[:functionalvalue], objval)
             !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))                
+            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))                
         end
         
         it += 1
     end
 
     ## Get final solution
-    z_feas = nonanticipatory_projection(pb, z)
-    objval = objective_value(pb, z_feas)
+
+    objval = objective_value(pb, x)
     
-    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
+    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e\n" it steplength objval 
     printlev>0 && println("Computation time: ", time() - tinit)
     
     ## Terminate all workers
     terminate_workers(pb, work_channel, remotecalls_futures)
 
-    return z_feas
+    return x
 end
