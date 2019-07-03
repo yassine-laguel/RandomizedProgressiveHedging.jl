@@ -83,11 +83,6 @@ function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:
     return work_channel, results_channel, params_channel, remotecalls_futures
 end
 
-"""
-    terminate_workers_async(pb, work_channel, remotecalls_futures)
-
-TODO
-"""
 function terminate_workers_async(pb, work_channel, remotecalls_futures)
     closing_task = AsyncSubproblemTask(
         -1,                 ## Stop signal

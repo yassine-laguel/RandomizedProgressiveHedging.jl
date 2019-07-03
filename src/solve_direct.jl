@@ -25,7 +25,8 @@ Build the progressive hedging problem by explicitly laying out non-anticipatory
 constraints, and solve globally.
 
 ## Keyword arguments:
-- `optimizer`: optimizer used for solve. Default is `Ipopt.Optimizer`.
+- `optimizer`: optimizer used for solve. Default is `GLPK.Optimizer`.
+- `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 - `printlev`: if 0, mutes output from the function (not solver). Default value is 1.
 """
 function solve_direct(pb::Problem; riskmeasure = RiskNeutral, 

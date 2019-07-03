@@ -20,8 +20,10 @@ end
 
 """
     objective_value(pb, x)
- 
-TODO
+
+Evaluate the objective of problem `pb` at point `x`.
+
+**Note**: This function discards all subproblem constraints not explicitly returned by the [`build_fs!`](@ref) function.
 """
 function objective_value(pb, x)
     optimizer=Ipopt.Optimizer
@@ -56,13 +58,6 @@ function objective_value(pb, x)
     end
 
     return global_objective
-end
-
-getfeas_nonant(pb, x) = @assert false "TBD"
-getfeas_trajinnerctr(pb, x) = @assert false "TBD"
-
-function solution_summary(pb, x)
-    @assert false "TBD"
 end
 
 

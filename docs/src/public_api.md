@@ -2,13 +2,10 @@
 
 ## Building a problem
 ```@docs
+AbstractScenario
+build_fs!
 RPH.ScenarioTree
 RPH.Problem
-```
-
-## Algebra...
-```@docs
-objective_value
 ```
 
 ## Solving a problem
@@ -19,7 +16,8 @@ solve_randomized_sync(pb::Problem)
 solve_randomized_async(pb::Problem{T}) where T<:AbstractScenario
 ```
 
-## CVar extension
+## Other
 ```@docs
+objective_value
 cvar_problem(pb::Problem, cvar::CVar)
 ```
