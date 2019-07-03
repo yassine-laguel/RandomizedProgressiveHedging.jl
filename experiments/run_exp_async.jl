@@ -50,6 +50,10 @@ function main()
         :pbname => "hydrothermal_7stages_20dams",
         :pb => build_hydrothermalextended_problem(;nstages=7, ndams=20),
     ))
+    # push!(problems, OrderedDict(
+    #     :pbname => "hydrothermal_12stages_5dams",
+    #     :pb => build_hydrothermalextended_problem(;nstages=12, ndams=5),
+    # ))
 
     ## Set number of seeds to be tried
     maxtime = 3*60*60
@@ -58,7 +62,15 @@ function main()
 
     ## Build algorithms & params used for solve
     algorithms = []
-
+    
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_par",
+        :fnsolve_symbol => :solve_randomized_par,
+        :maxtime => maxtime,
+        :maxiter => maxiter,
+        :seeds => seeds,
+        :printstep => 20,
+    ))
     push!(algorithms, OrderedDict(
         :algoname => "randomized_async",
         :fnsolve_symbol => :solve_randomized_async,

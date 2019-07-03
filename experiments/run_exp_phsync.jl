@@ -44,15 +44,19 @@ function main()
     #     :pbname => "simpleproblem",
     #     :pb => build_simpleexample(),
     # ))
+    # push!(problems, OrderedDict(
+    #     :pbname => "hydrothermal_7stages_20dams",
+    #     :pb => build_hydrothermalextended_problem(;nstages=7, ndams=20),
+    # ))
     push!(problems, OrderedDict(
-        :pbname => "hydrothermal_7stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=7, ndams=20),
+        :pbname => "hydrothermal_12stages_5dams",
+        :pb => build_hydrothermalextended_problem(;nstages=12, ndams=5),
     ))
 
     ## Set number of seeds to be tried
     maxtime = 3*60*60
     maxiter = 1e9
-    seeds = 1:3
+    seeds = 1:5
 
     ## Build algorithms & params used for solve
     algorithms = []
@@ -106,7 +110,7 @@ function main()
         xsol = nothing
         fopt = nothing
         try
-            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=4*60*60, maxiter=1e6, printstep=10)
+            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=4*60*60, maxiter=1e6, printstep=1)
             fopt = objective_value(pb, xsol)
         catch e
             println("Error during ph solve.")
