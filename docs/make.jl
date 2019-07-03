@@ -20,6 +20,6 @@ makedocs(
     modules = [RPH]
 )
 
-# deploydocs(
-#     repo = "github.com/yassine-laguel/RPH.jl.git",
-# )
+deploydocs(
+    repo = "github.com/yassine-laguel/RPH.jl.git",
+)
