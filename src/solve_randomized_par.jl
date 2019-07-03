@@ -185,7 +185,6 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
 function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
-                                                ϵ = 1e-13,
                                                 c = 0.9,
                                                 qdistr = nothing,
                                                 maxtime = 3600,
@@ -238,7 +237,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
 
 
-    while steplength>ϵ && it < maxiter && time()-tinit < maxtime
+    while it < maxiter && time()-tinit < maxtime
         
         z_prev = copy(z)
         

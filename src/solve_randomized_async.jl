@@ -182,7 +182,6 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 """
 function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
-                                                ϵ = 1e-13,
                                                 c = 0.9,
                                                 stepsize::Union{Nothing, Float64} = nothing,
                                                 qdistr = nothing,
@@ -250,7 +249,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         cur_taskid += 1
     end
 
-    while steplength>ϵ && it < maxiter && time()-tinit < maxtime
+    while it < maxiter && time()-tinit < maxtime
         
         y, taskid = take!(results_channel)
         x_coord = taskid_to_xcoord[taskid]; delete!(taskid_to_xcoord, taskid)
