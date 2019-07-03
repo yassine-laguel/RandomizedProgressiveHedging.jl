@@ -21,7 +21,7 @@ using Ipopt, LinearAlgebra, Distributed
     end
     
     @testset "Solve synchronous" begin
-        y_sync = solve_randomized_sync(pb, maxtime=5, printlev=1)
+        y_sync = solve_randomized_sync(pb, maxtime=3, printlev=0)
         
         @test isapprox(y_sync, xsol, atol=1e-3)
     end
@@ -30,7 +30,7 @@ using Ipopt, LinearAlgebra, Distributed
 
         if workers() !== Vector([1])
             y_async = solve_randomized_par(pb, maxtime=0.1, printlev=1)
-            y_async = solve_randomized_par(pb, maxtime=5, printlev=1)
+            y_async = solve_randomized_par(pb, maxtime=3, printlev=0)
             
             @test isapprox(y_async, xsol, atol=1e-3)
         end
@@ -40,7 +40,7 @@ using Ipopt, LinearAlgebra, Distributed
 
         if workers() !== Vector([1])
             y_async = solve_randomized_async(pb, maxtime=0.1, printlev=1)
-            y_async = solve_randomized_async(pb, maxtime=5, printlev=1)
+            y_async = solve_randomized_async(pb, maxtime=3, printlev=0)
             
             @test isapprox(y_async, xsol, atol=1e-3)
         end
