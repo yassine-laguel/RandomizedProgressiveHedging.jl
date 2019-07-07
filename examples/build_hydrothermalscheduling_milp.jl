@@ -40,13 +40,14 @@ end
     D = 6               # demand at each time step
     W = 8               # dam water capacity
     W1 = 6              # initial state of dams
-    rain = [2, 10]
+    rain = [0.1, 10]
 
     # Convert weathertype::Int into stage to rain level
     stage_to_rainlevel = int_to_bindec(s.weathertype, s.nstages) .+1
-
-    qs = @variable(model, [1:B*T], base_name="qs_s$id_scen")
-    ys = @variable(model, [1:B*T], base_name="ys_s$id_scen", Int)
+    
+    qs = @variable(model, [1:T, 1:B], base_name="qs_s$id_scen")
+    ys = @variable(model, [1:T, 1:B], base_name="ys_s$id_scen", Int)
+    # ys = @variable(model, [1:T, 1:B], base_name="ys_s$id_scen")
     e = @variable(model, [1:T], base_name="e_s$id_scen")
 
     # positivity constraint
@@ -56,26 +57,25 @@ end
     @constraint(model, ys .<= W + maximum(rain))
 
     # Meet demand
-    @constraint(model, [t=1:T], sum(ys[(t-1)*B+1:t*B]) + e[t] >= D)
-    
+    @constraint(model, [t=1:T], sum(ys[t, 1:B]) + e[t] >= D)
+   
     # Reservoir max capacity
     @constraint(model, qs .<= W)
 
     ## Dynamic constraints
-    @constraint(model, qs[1:B] .== W1 - ys[1:B])
-    @constraint(model, [t=2:T], qs[(t-1)*B + 1:(t-1)*B + B] .== qs[(t-2)*B + 1:(t-2)*B + B] - ys[(t-1)*B + 1:(t-1)*B + B] .+ rain[stage_to_rainlevel[t]])
+    @constraint(model, qs[1, 1:B] .== W1 - ys[1, 1:B])
+    @constraint(model, [t=2:T], qs[t, 1:B] .== qs[t-1, 1:B] - ys[t, 1:B] .+ rain[stage_to_rainlevel[t]])    
     
-    ## Fool Juniper to avoid printing warnings.
-    @NLconstraint(model, 0 <= 1)
+    # objexpr = sum(sum(  c_H[b] * ys[t, b] for b in 1:B) + c_E * e[t] for t in 1:T)
+    objexpr = sum(  c_E * e[t] for t in 1:T)
 
-    objexpr = @expression(model, sum(sum(c_H[i]*ys[(t-1)B + i] for i in 1:B) + c_E * e[t] for t in 1:T))
-    Y = collect(Iterators.flatten([ union(ys[(t-1)*B+1:t*B], qs[(t-1)*B+1:t*B], e[t]) for t in 1:T] ))
+    Y = collect(Iterators.flatten([ union(ys[t, 1:B], qs[t, 1:B], e[t]) for t in 1:T] ))
 
     return Y, objexpr, []
 end
 
 
-function build_hydrothermalextendedmilp_problem(; nstages = 5, ndams=10)
+function build_hydrothermalextendedmilp_problem(; nstages = 5, ndams=10, p = 1/4)
     nbranching = 2
     nscenarios = 2^(nstages-1)
 
@@ -86,7 +86,15 @@ function build_hydrothermalextendedmilp_problem(; nstages = 5, ndams=10)
 
     scenariotree = ScenarioTree(; depth=nstages, nbranching=2)
 
-    probas = ones(nscenarios) / nscenarios
+    ## Building probas: p is proba of rain
+    probas = zeros(nscenarios)
+    for s_id in 0:nscenarios-1
+        ## in binary decomposition: 0 -> no rain; 1-> rain
+        probas[s_id+1] = prod(v*p + (1-v)*(1-p) for v in int_to_bindec(s_id, nstages)[2:end])
+    end
+
+    @assert isapprox(sum(probas), 1.)
+
     dim_to_subspace = [1+(2ndams+1)*i:(2ndams+1)*(i+1) for i in 0:nstages-1]
 
     return Problem(

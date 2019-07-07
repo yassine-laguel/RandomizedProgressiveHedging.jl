@@ -1,6 +1,10 @@
 # RPH.jl
 
-Randomized Progressive Hedging.
+*Randomized Progressive Hedging.*
+
+| **Documentation**                                                               | **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://yassine-laguel.github.io/RPH.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://yassine-laguel.github.io/RPH.jl/dev) | [![](https://api.travis-ci.com/yassine-laguel/RPH.jl.svg?token=aVdshbY2sAXsS8EzvkVr&branch=master)](https://travis-ci.com/yassine-laguel/RPH.jl) |
 
 ## Installation
 
@@ -15,18 +19,10 @@ Randomized Progressive Hedging.
 
 See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` ~or notebook `hyforthermal_scheduling.ipynb`~. For distributed solve, launch julia as `julia -p 3` for 3 workers and a master thread.
 
-## Questions
-
-- What print info / log info ?
-- Discuss stopping criteria
-- Discuss algo parameters (upper delay bound, ...)
-
 ## TODOs
 
 ### Week 11->14 week
-- [x] Decide if the algorithms present now (vanilla, randomized, and asynchronous parallel) are the only ones we will consider. Typically, do/can we easily add a "distributed" version where the scenarios are local to the workers instead of sampled ?
 - [ ] Create a more realistic test set (see the refs in the num. sec. of the paper) and proofread the code
-- [x] Start thinking about documentation, packaging, and creation of synthetic problems of different sizes
 
 ### Mid-term (june 26th)
 - [ ] Run experiments and present nice figures/plots
@@ -36,14 +32,6 @@ See scripts `exmaples/simple_example.jl`, `examples/hydrothermal_scheduling.jl` 
 - [ ] [doc] Write documentation, readme
 - [ ] [doc] Document functions properly
 - [ ] [dev] make hydrothermal example fully parametric in nstages and nbraching
-- [ ] [dev] make PH subpb solves distributed
-- [x] [dev] rph async - make sub pb solve parametric in solver
-- [x] [exp] write script/files for numerical experiments: first a direct/ph solve, then an rph solve with same time budget. Solution comparison, 'suboptimality' evolution, (smoothed ?) stepsize evolution. Max delay over time ?
-- [ ] [exp] Redirect stdout to file for num exp script.
-- [ ] [?] Clean up code, stick to paper notations
-- [x] [?] Q sampling : parametrize & default to p
-
-**Beware**: subpb function definition: make clear that ctrrefs should reference constraints relative to objective function validity, not feasibility of the global problem.
 
 ## Distributed computing with OAR
 
