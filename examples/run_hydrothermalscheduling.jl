@@ -6,7 +6,6 @@ using Distributed
 
 using RPH, Ipopt
 
-include("build_hydrothermalscheduling.jl")
 include("build_hydrothermalscheduling_extended.jl")
 
 function main()
