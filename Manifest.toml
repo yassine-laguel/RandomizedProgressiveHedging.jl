@@ -171,14 +171,6 @@ git-tree-sha1 = "ce3b85e484a5d4c71dd5316215069311135fa9f2"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "0.3.2"
 
-[[OarClusterManager]]
-deps = ["DelimitedFiles", "Distributed"]
-git-tree-sha1 = "72c972b06d0c51a6a4f16119edb1a4a35dc444ef"
-repo-rev = "master"
-repo-url = "https://github.com/GillesBareilles/OarClusterManager.jl"
-uuid = "207ec4d0-90e1-11e9-024b-2589a7dd4862"
-version = "0.1.0"
-
 [[OrderedCollections]]
 deps = ["Random", "Serialization", "Test"]
 git-tree-sha1 = "c4c13474d23c60d20a67b217f1d7f22a40edf8f1"

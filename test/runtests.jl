@@ -1,7 +1,9 @@
 using Test
 
 using Distributed
-addprocs(1)
+workers() == Vector([1]) && addprocs(1)
+
+@show workers()
 
 @everywhere push!(LOAD_PATH, joinpath(pwd(), ".."))
 @everywhere using RPH, JuMP

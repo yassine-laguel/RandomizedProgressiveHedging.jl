@@ -1,5 +1,5 @@
-using Pkg
-Pkg.activate(".")
+# using Pkg
+# Pkg.activate(".")
 
 
 using Documenter, RPH
@@ -20,6 +20,6 @@ makedocs(
     modules = [RPH]
 )
 
-# deploydocs(
-#     repo = "github.com/yassine-laguel/RPH.jl.git",
-# )
+deploydocs(
+    repo = "github.com/yassine-laguel/RPH.jl.git",
+)

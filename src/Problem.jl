@@ -26,40 +26,52 @@ Evaluate the objective of problem `pb` at point `x`.
 **Note**: This function discards all subproblem constraints not explicitly returned by the [`build_fs!`](@ref) function.
 """
 function objective_value(pb, x)
-    optimizer=Ipopt.Optimizer
-    optimizer_params = Dict{Symbol, Any}(:print_level=>0)
+    global_objective = 0.0
 
-    global_objective = 0
     for id_scen in 1:pb.nscenarios
-        ## Layout JuMP problem with objective
-        model = Model(with_optimizer(optimizer; optimizer_params...))
-        
-        y, obj, ctrrefs = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
-        
-        @objective(model, Min, obj)
-        
-        ## Remove all constraints (including on variables)
-        model.nlp_data = nothing
-        for (ftype, settype) in list_of_constraint_types(model)
-            for ctr in all_constraints(model, ftype, settype)
-                (length(ctrrefs)==0 || !(ctr in ctrrefs)) && delete(model, ctr)
-            end
-        end
-
-        ## Fix variables
-        for i in 1:size(y, 1)
-            fix(y[i], x[id_scen, i], force=true)
-        end
-
-        ## Get objective value and constraint violation
-        optimize!(model)
-
-        global_objective += pb.probas[id_scen] * objective_value(model)
+        global_objective += pb.probas[id_scen] * objective_value(pb, x, id_scen)
     end
 
     return global_objective
 end
 
+
+"""
+    objective_value(pb, x, id_scen)
+
+Evaluate the objective of the subproblem associated with scenario `id_scen` of problem `pb` at point `x`.
+
+**Note**: This function discards all subproblem constraints not explicitly returned by the [`build_fs!`](@ref) function.
+"""
+function objective_value(pb, x, id_scen)
+    optimizer=Ipopt.Optimizer
+    optimizer_params = Dict{Symbol, Any}(:print_level=>0)
+
+    ## Layout JuMP problem with objective
+    model = Model(with_optimizer(optimizer; optimizer_params...))
+        
+    y, obj, ctrrefs = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
+        
+    @objective(model, Min, obj)
+        
+    ## Remove all constraints (including on variables)
+    model.nlp_data = nothing
+    for (ftype, settype) in list_of_constraint_types(model)
+        for ctr in all_constraints(model, ftype, settype)
+            (length(ctrrefs)==0 || !(ctr in ctrrefs)) && delete(model, ctr)
+        end
+    end
+
+    ## Fix variables
+    for i in 1:size(y, 1)
+        fix(y[i], x[id_scen, i], force=true)
+    end
+
+    ## Get objective value and constraint violation
+    optimize!(model)
+
+    return objective_value(model)
+end
 
 """
     dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
