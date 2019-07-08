@@ -51,7 +51,7 @@ function get_problems()
     #     :fnglobalsolve => ph_globalsolve
     # ))
 
-    nstages, ndams = 5, 5
+    nstages, ndams = 5, 3
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_$(nstages)stages_$(ndams)dams_mip",
         :pb => build_hydrothermalextendedmilp_problem(;nstages=nstages, ndams=ndams),
@@ -66,32 +66,45 @@ end
 function get_algorithms()
     algorithms = []
 
-    maxtime = 3*60*60
+    maxtime = 1*60*60
     maxiter = 1e9
     seeds = 1:3
 
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_par",
-        :fnsolve_symbol => :solve_randomized_par,
+        :algoname => "progressivehedging",
+        :fnsolve_symbol => :solve_progressivehedging,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
             :maxiter => maxiter,
-            :printstep => 20,
+            :printstep => 1,
+            :ϵ_primal => 1e-10,
+            :ϵ_dual => 1e-10,
         ),
-        :seeds => seeds,
+        :seeds => [1],
     ))
-
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_async",
-        :fnsolve_symbol => :solve_randomized_async,
+        :algoname => "randomized_sync_psampling",
+        :fnsolve_symbol => :solve_randomized_sync,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
             :maxiter => maxiter,
             :printstep => 20,
+            :qdistr => :pdistr,
         ),
         :seeds => seeds,
     ))
-
+    
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_sync_unifsampling",
+        :fnsolve_symbol => :solve_randomized_sync,
+        :fnsolve_params => Dict(
+            :maxtime => maxtime,
+            :maxiter => maxiter,
+            :printstep => 20,
+            :qdistr => :unifdistr,
+        ),
+        :seeds => seeds,
+    ))
 
     return algorithms
 end

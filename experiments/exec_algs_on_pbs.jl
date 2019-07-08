@@ -5,7 +5,7 @@ using JuMP
 include("utils.jl")
 
 function execute_algs_on_problems(problems, algorithms)
-    println("Entering main()")
+    println("Entering execute_algs_on_problems()")
     println("- Date is: ", String(Dates.format(now(), "yyyy_mm_dd-HHhMM")))
     println("  Path is: ", pwd())
     println("- ENV[\"OAR_NODEFILE\"]: ", get(ENV, "OAR_NODEFILE", ""))
@@ -102,7 +102,7 @@ function execute_algs_on_problems(problems, algorithms)
         problem_to_algo[pbname]["nstages"] = pb.nstages
         problem_to_algo[pbname]["nscenarios"] = pb.nscenarios
         problem_to_algo[pbname]["subpbdim"] = sum(length.(pb.stage_to_dim))
-        problem_to_algo[pbname]["nworkers"] = length(workers())
+        # problem_to_algo[pbname]["nworkers"] = length(workers())
     end
 
     ## Write log information
