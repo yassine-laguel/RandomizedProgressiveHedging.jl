@@ -16,23 +16,14 @@ function writelogs(problem_to_algo, logdir)
         JSON.print(w, problem_to_algo)
     end
 
-    # ## Copy stdoud, stderr file redirect of oar to right folder
-    # if haskey(ENV, "OAR_JOB_ID")
-    #     for ext in ["stdout", "stderr"]
-    #         filename = filter(x->occursin("$(ENV["OAR_JOB_ID"]).$ext", x), readdir(homedir()))
-    #         if length(filename) == 1
-    #             cp(joinpath(homedir(), filename[1]), joinpath(logdir, filename[1]))
-    #         else
-    #             println("No $ext file found.")
-    #         end
-    #     end
-    # end
-
     return
 end
 
 
-function runallalgs(; runasync=true)
+function runallalgs()
+    runasync=false
+    workers() != Vector([1]) && (runasync=true)
+
     pb = build_simpleexample()
 
     # y_direct = solve_direct(pb; printlev=0, optimizer=Ipopt.Optimizer)
