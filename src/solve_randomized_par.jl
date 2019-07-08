@@ -213,8 +213,17 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     
     ## Random scenario sampling
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
-    scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
-    qmin = minimum(scen_sampling_distrib.p)      
+    if isnothing(qdistr) || qdistr == :pdistr
+        scen_sampling_distrib = Categorical(pb.probas)
+    elseif qdistr == :unifdistr
+        scen_sampling_distrib = Categorical(ones(nscenarios) / nscenarios)
+    else
+        @assert typeof(qdistr)<:Array
+        @assert sum(qdistr) == 1
+        @assert length(qdistr) == nscenarios
+        scen_sampling_distrib = Categorical(qdistr)
+    end
+    qmin = minimum(scen_sampling_distrib.p)
     
     
     init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
