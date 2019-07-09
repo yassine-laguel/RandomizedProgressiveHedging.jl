@@ -19,7 +19,7 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     
     optimize!(model)
     if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
-        @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+        @warn "Subproblem of scenario $(id_scen) " primal_status(model) dual_status(model) termination_status(model)
     end
 
     return JuMP.value.(y)

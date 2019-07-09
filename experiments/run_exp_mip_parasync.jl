@@ -37,6 +37,7 @@ function get_problems()
     juniper_optimizer_params = Dict{Symbol, Any}()
     juniper_optimizer_params[:nl_solver] = with_optimizer(Ipopt.Optimizer; print_level=0)
     juniper_optimizer_params[:mip_solver] = with_optimizer(Cbc.Optimizer; logLevel=0)
+    juniper_optimizer_params[:time_limit] = 3*60
     juniper_optimizer_params[:log_levels] = []
 
     ## Global solve functions

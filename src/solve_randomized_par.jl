@@ -41,7 +41,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
 
             optimize!(model)
             if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
-                @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+                @warn "Subproblem of scenario $(subpbtask.id_scenario) " primal_status(model) dual_status(model) termination_status(model)
             end
 
             put!(outres, (JuMP.value.(y), subpbtask.id_scenario))
