@@ -4,18 +4,18 @@ using JSON, Gtk
 function main()
     println("Merge jsons dealing with same problem, for different algorithms")
     
-    # println("How many json should be merged ?")
-    # njson = parse(Int, readline())
+    println("How many json should be merged ?")
+    njson = parse(Int, readline())
 
-    # filepaths = String[]
-    # for i in 1:njson
-    #     push!(filepaths, open_dialog("Pick a json log"))
-    # end
+    filepaths = String[]
+    for i in 1:njson
+        push!(filepaths, open_dialog("Pick a json log"))
+    end
 
-    filepaths = [ 
-        "/home/gilles/Desktop/RPH.jl/logdir/RPH_num_exps/rphrun_2019_07_04-17h55/full_logs.json",
-        "/home/gilles/Desktop/RPH.jl/logdir/RPH_num_exps/rphrun_2019_07_03-18h07/full_logs.json",
-    ]
+    # filepaths = [ 
+    #     "/home/gilles/Desktop/RPH.jl/logdir/RPH_num_exps/rphrun_2019_07_04-17h55/full_logs.json",
+    #     "/home/gilles/Desktop/RPH.jl/logdir/RPH_num_exps/rphrun_2019_07_03-18h07/full_logs.json",
+    # ]
     @show filepaths
 
     logdicts = [JSON.parsefile(filepath) for filepath in filepaths]
