@@ -35,15 +35,20 @@ for pb in pbnames:
 
     results = data[pb] # RESULTS PARTS
 
+    if "nstages" in data:
+        T = data["nstages"]
+        S = data["nscenarios"]
+        # W = data["nworkers"]
+    else:
+        T = results["nstages"]
+        S = results["nscenarios"]
+        # W = results["nworkers"]
 
-    T = data["nstages"]
-    S = data["nscenarios"]
-    W = data["nworkers"]
 
-
-
-
-    algorithms = results.keys()
+    if "algorithms" in results:
+        algorithms = results["algorithms"]
+    else:
+        algorithms = results.keys()
 
     cmap = plt.get_cmap("nipy_spectral")
     colors_val = cmap(np.linspace(0, 1, len(algorithms)))
