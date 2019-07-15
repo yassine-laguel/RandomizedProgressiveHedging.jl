@@ -66,10 +66,10 @@ end
 function get_algorithms()
     algorithms = []
 
-    maxtime = 0.5*60*60
+    maxtime = 5*60
     maxiter = 1e9
     seeds = 1:1
-
+    
     push!(algorithms, OrderedDict(
         :algoname => "randomized_par_unif",
         :fnsolve_symbol => :solve_randomized_par,
@@ -95,19 +95,45 @@ function get_algorithms()
     ))
     
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_async_unif",
+        :algoname => "randomized_async_unifsampling_stepsize1",
         :fnsolve_symbol => :solve_randomized_async,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
             :maxiter => maxiter,
             :printstep => 20,
-            :qdistr => :pdistr
+            :qdistr => :pdistr,
+            :stepsize => 1.0,
         ),
         :seeds => seeds,
     ))
 
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_async_pdistr",
+        :algoname => "randomized_async_unifsampling_stepsizeth",
+        :fnsolve_symbol => :solve_randomized_async,
+        :fnsolve_params => Dict(
+            :maxtime => maxtime,
+            :maxiter => maxiter,
+            :printstep => 20,
+            :qdistr => :pdistr,
+        ),
+        :seeds => seeds,
+    ))
+    
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_async_pdistr_stepsize1",
+        :fnsolve_symbol => :solve_randomized_async,
+        :fnsolve_params => Dict(
+            :maxtime => maxtime,
+            :maxiter => maxiter,
+            :printstep => 20,
+            :qdistr => :pdistr,
+            :stepsize => 1.0,
+        ),
+        :seeds => seeds,
+    ))
+
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_async_pdistr_stepsizeth",
         :fnsolve_symbol => :solve_randomized_async,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
