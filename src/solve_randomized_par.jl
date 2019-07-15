@@ -244,6 +244,8 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)  
     
 
+    minworkscen = min(nworkers, nscenarios)
+    minworkscen < nworkers && @warn "solve_randomized_par(): less scenarios than workers ($nscenarios < $nworkers). Only $nscenarios workers will be put to use."
 
 
     while it < maxiter && time()-tinit < maxtime
@@ -251,8 +253,8 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
         z_prev = copy(z)
         
         ## Draw a scenario, build v, send task
-        tab_id_scen = zeros(Int64, nworkers)
-        for i in 1:nworkers
+        tab_id_scen = zeros(Int64, minworkscen)
+        for i in 1:minworkscen
             id_scen = rand(rng, scen_sampling_distrib)
             while id_scen in tab_id_scen[1:i-1]
                 id_scen = rand(rng, scen_sampling_distrib)
