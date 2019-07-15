@@ -36,8 +36,10 @@ function main()
 
     mergeddict = copy(logdicts[1])
     for logdict in logdicts[2:end]
-        for (algname, algstat) in logdict[pbname]
+        for algname in logdict[pbname]["algorithms"]
+            algstat = logdict[pbname][algname]
             if !haskey(mergeddict[pbname], algname)
+                push!(mergeddict[pbname]["algorithms"], algname)
                 merge!(mergeddict[pbname], Dict(algname=>algstat))
             else
                 @warn "Not adding algorithm $algname, already present"
