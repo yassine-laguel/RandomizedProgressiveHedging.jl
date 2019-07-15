@@ -273,7 +273,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         if isnothing(stepsize)
             step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[x_coord, :])
         else
-            step = stepsize
+            step = stepsize * (y - x[x_coord, :])
         end
         z[id_scen, :] += step
 
