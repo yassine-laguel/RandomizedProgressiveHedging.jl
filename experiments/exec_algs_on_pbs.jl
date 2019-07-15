@@ -99,6 +99,7 @@ function execute_algs_on_problems(problems, algorithms)
         end
 
         problem_to_algo[pbname] = algo_to_seedhist
+        problem_to_algo[pbname]["algorithms"] = collect(keys(algo_to_seedhist))
         problem_to_algo[pbname]["nstages"] = pb.nstages
         problem_to_algo[pbname]["nscenarios"] = pb.nscenarios
         problem_to_algo[pbname]["subpbdim"] = sum(length.(pb.stage_to_dim))
