@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-#import matplotlib2tikz
+import matplotlib2tikz
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -85,7 +85,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"Subopt_Calls"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
+    matplotlib2tikz.save(path+"Subopt_Calls"+pb+".tex")
 
 
     ########################################
@@ -123,7 +123,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"ALL_Subopt_Calls"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
+    matplotlib2tikz.save(path+"ALL_Subopt_Calls"+pb+".tex")
 
     ########################################
     ### SUBOPTIMALITY vs TIME
@@ -142,7 +142,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"Subopt_Time"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
+    matplotlib2tikz.save(path+"Subopt_Time"+pb+".tex")
 
 
     ########################################
@@ -182,7 +182,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"ALL_Subopt_Time"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
+    matplotlib2tikz.save(path+"ALL_Subopt_Time"+pb+".tex")
 
 
     ########################################
@@ -234,5 +234,5 @@ for pb in pbnames:
     plt.legend()
     plt.yscale('log', nonposy='clip')
     plt.savefig(path+"SuboptFill_Calls"+pb+".png")
-    #matplotlib2tikz.save("./Tex/SuboptFill_Calls.tex")
+    matplotlib2tikz.save(path+"SuboptFill_Calls"+pb+".tex")
 
