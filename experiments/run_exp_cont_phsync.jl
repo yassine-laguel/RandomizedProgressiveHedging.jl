@@ -48,13 +48,13 @@ function get_problems()
     #     :fnglobalsolve => ph_globalsolve
     # ))
 
-    nstages, ndams = 5, 5
+    nstages, ndams = 7, 20
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_$(nstages)stages_$(ndams)dams",
         :pb => build_hydrothermalextended_problem(;nstages=nstages, ndams=ndams),
         :optimizer => Ipopt.Optimizer,
         :optimizer_params => ipopt_optimizer_params,
-        :fnglobalsolve => ph_globalsolve
+        :fnglobalsolve => mosek_globalsolve
     ))
 
     return problems
@@ -63,9 +63,9 @@ end
 function get_algorithms()
     algorithms = []
 
-    maxtime = 3*60*60
+    maxtime = 5*60
     maxiter = 1e9
-    seeds = 1:3
+    seeds = 1:1
 
     push!(algorithms, OrderedDict(
         :algoname => "progressivehedging",
@@ -80,12 +80,25 @@ function get_algorithms()
         :seeds => [1],
     ))
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_sync",
+        :algoname => "randomized_sync_psampling",
         :fnsolve_symbol => :solve_randomized_sync,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
             :maxiter => maxiter,
             :printstep => 20,
+            :qdistr => :pdistr,
+        ),
+        :seeds => seeds,
+    ))
+    
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_sync_unifsampling",
+        :fnsolve_symbol => :solve_randomized_sync,
+        :fnsolve_params => Dict(
+            :maxtime => maxtime,
+            :maxiter => maxiter,
+            :printstep => 20,
+            :qdistr => :unifdistr,
         ),
         :seeds => seeds,
     ))
