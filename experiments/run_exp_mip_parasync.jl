@@ -68,7 +68,7 @@ end
 function get_algorithms()
     algorithms = []
 
-    maxtime = 20*60
+    maxtime = 5*60
     maxiter = 1e9
     seeds = 1:1
 
