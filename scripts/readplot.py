@@ -75,7 +75,7 @@ for pb in pbnames:
         if alg in results:
             RES = results[alg]["1"]
             step = results[alg]["1"]["logstep"]
-            F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
             C = [step*i for i in range(len(F))]
 
             plt.plot(C,F,label=names[alg],color=colors[alg])
@@ -104,7 +104,7 @@ for pb in pbnames:
 
             RES = results[alg]["1"]
             step = results[alg]["1"]["logstep"]
-            F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
             C = [step*i for i in range(len(F))]
 
             plt.plot(C,F,label=names[alg],color=colors[alg])
@@ -113,7 +113,7 @@ for pb in pbnames:
                 srun = seeds[run]
                 RES = results[alg][srun]
                 step = results[alg][srun]["logstep"]
-                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
                 C = [step*i for i in range(len(F))]
 
                 plt.plot(C,F,color=colors[alg])
@@ -172,7 +172,7 @@ for pb in pbnames:
                 srun = seeds[run]
                 RES = results[alg][srun]
                 step = results[alg][srun]["logstep"]
-                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
                 T = RES["time"]
 
                 plt.plot(T,F,color=colors[alg])
