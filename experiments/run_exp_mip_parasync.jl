@@ -53,7 +53,7 @@ function get_problems()
     #     :fnglobalsolve => ph_globalsolve
     # ))
 
-    nstages, ndams = 5, 3
+    nstages, ndams = 5, 2
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_$(nstages)stages_$(ndams)dams_mip",
         :pb => build_hydrothermalextendedmilp_problem(;nstages=nstages, ndams=ndams),
@@ -70,7 +70,7 @@ function get_algorithms()
 
     maxtime = 20*60
     maxiter = 1e9
-    seeds = 1:3
+    seeds = 1:1
 
     push!(algorithms, OrderedDict(
         :algoname => "randomized_par_psampling",
@@ -97,7 +97,20 @@ function get_algorithms()
     ))
 
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_async_psampling",
+        :algoname => "randomized_async_unifsampling_stepsize1",
+        :fnsolve_symbol => :solve_randomized_async,
+        :fnsolve_params => Dict(
+            :maxtime => maxtime,
+            :maxiter => maxiter,
+            :printstep => 20,
+            :qdistr => :pdistr,
+            :stepsize => 1.0,
+        ),
+        :seeds => seeds,
+    ))
+
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_async_unifsampling_stepsizeth",
         :fnsolve_symbol => :solve_randomized_async,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
@@ -107,18 +120,32 @@ function get_algorithms()
         ),
         :seeds => seeds,
     ))
-
+    
     push!(algorithms, OrderedDict(
-        :algoname => "randomized_async_unifsampling",
+        :algoname => "randomized_async_pdistr_stepsize1",
         :fnsolve_symbol => :solve_randomized_async,
         :fnsolve_params => Dict(
             :maxtime => maxtime,
             :maxiter => maxiter,
             :printstep => 20,
-            :qdistr => :unifdistr,
+            :qdistr => :pdistr,
+            :stepsize => 1.0,
         ),
         :seeds => seeds,
     ))
+
+    push!(algorithms, OrderedDict(
+        :algoname => "randomized_async_pdistr_stepsizeth",
+        :fnsolve_symbol => :solve_randomized_async,
+        :fnsolve_params => Dict(
+            :maxtime => maxtime,
+            :maxiter => maxiter,
+            :printstep => 20,
+            :qdistr => :pdistr
+        ),
+        :seeds => seeds,
+    ))
+
 
 
     return algorithms

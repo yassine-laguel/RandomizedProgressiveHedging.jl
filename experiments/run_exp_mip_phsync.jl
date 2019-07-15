@@ -51,7 +51,7 @@ function get_problems()
     #     :fnglobalsolve => ph_globalsolve
     # ))
 
-    nstages, ndams = 5, 3
+    nstages, ndams = 5, 2
     push!(problems, OrderedDict(
         :pbname => "hydrothermal_$(nstages)stages_$(ndams)dams_mip",
         :pb => build_hydrothermalextendedmilp_problem(;nstages=nstages, ndams=ndams),
@@ -68,7 +68,7 @@ function get_algorithms()
 
     maxtime = 1*60*60
     maxiter = 1e9
-    seeds = 1:3
+    seeds = 1:1
 
     push!(algorithms, OrderedDict(
         :algoname => "progressivehedging",
