@@ -1,6 +1,10 @@
 # RPH.jl
 
-Randomized Progressive Hedging.
+*Randomized Progressive Hedging.*
+
+| **Documentation**                                                               | **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://yassine-laguel.github.io/RPH.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://yassine-laguel.github.io/RPH.jl/dev) | [![](https://api.travis-ci.com/yassine-laguel/RPH.jl.svg?token=aVdshbY2sAXsS8EzvkVr&branch=master)](https://travis-ci.com/yassine-laguel/RPH.jl) |
 
 ## Installation
 

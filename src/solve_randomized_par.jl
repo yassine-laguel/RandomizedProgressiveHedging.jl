@@ -41,7 +41,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
 
             optimize!(model)
             if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
-                @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+                @warn "Subproblem of scenario $(subpbtask.id_scenario) " primal_status(model) dual_status(model) termination_status(model)
             end
 
             put!(outres, (JuMP.value.(y), subpbtask.id_scenario))
@@ -214,7 +214,16 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
     ## Random scenario sampling
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
-    scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
+    if isnothing(qdistr) || qdistr == :pdistr
+        scen_sampling_distrib = Categorical(pb.probas)
+    elseif qdistr == :unifdistr
+        scen_sampling_distrib = Categorical(ones(nscenarios) / nscenarios)
+    else
+        @assert typeof(qdistr)<:Array
+        @assert sum(qdistr) == 1
+        @assert length(qdistr) == nscenarios
+        scen_sampling_distrib = Categorical(qdistr)
+    end
     qmin = minimum(scen_sampling_distrib.p)
 
 
@@ -236,6 +245,8 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)
 
 
+    minworkscen = min(nworkers, nscenarios)
+    minworkscen < nworkers && @warn "solve_randomized_par(): less scenarios than workers ($nscenarios < $nworkers). Only $nscenarios workers will be put to use."
 
 
     while it < maxiter && time()-tinit < maxtime
@@ -243,8 +254,8 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
         z_prev = copy(z)
 
         ## Draw a scenario, build v, send task
-        tab_id_scen = zeros(Int, nworkers)
-        for i in 1:nworkers
+        tab_id_scen = zeros(Int64, minworkscen)
+        for i in 1:minworkscen
             id_scen = rand(rng, scen_sampling_distrib)
             while id_scen in tab_id_scen[1:i-1]
                 id_scen = rand(rng, scen_sampling_distrib)

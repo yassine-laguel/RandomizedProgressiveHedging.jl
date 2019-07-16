@@ -41,7 +41,7 @@ function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, para
 
             optimize!(model)
             if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
-                @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+                @warn "Subproblem of scenario $(subpbtask.id_scenario) " primal_status(model) dual_status(model) termination_status(model)
             end
 
             put!(outres, (JuMP.value.(y), subpbtask.taskid))
@@ -213,8 +213,18 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
     ## Random scenario sampling
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
-    scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
+    if isnothing(qdistr) || qdistr == :pdistr
+        scen_sampling_distrib = Categorical(pb.probas)
+    elseif qdistr == :unifdistr
+        scen_sampling_distrib = Categorical(ones(nscenarios) / nscenarios)
+    else
+        @assert typeof(qdistr)<:Array
+        @assert sum(qdistr) == 1
+        @assert length(qdistr) == nscenarios
+        scen_sampling_distrib = Categorical(qdistr)
+    end
     qmin = minimum(scen_sampling_distrib.p)
+
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
 
     init_hist_async!(hist, printstep)
@@ -264,7 +274,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         if isnothing(stepsize)
             step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[x_coord, :])
         else
-            step = stepsize
+            step = stepsize * (y - x[x_coord, :])
         end
         z[id_scen, :] += step
 

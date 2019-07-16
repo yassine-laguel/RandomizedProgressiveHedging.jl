@@ -19,7 +19,7 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
 
     optimize!(model)
     if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
-        @warn "Subproblem of scenario $id_scen " primal_status(model) dual_status(model) termination_status(model)
+        @warn "Subproblem of scenario $(id_scen) " primal_status(model) dual_status(model) termination_status(model)
     end
 
     return JuMP.value.(y)
@@ -68,7 +68,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 """
 function solve_randomized_sync(pb::Problem; μ = 3,
                                             qdistr = nothing,
-                                            maxtime = 3600,
+                                            maxtime = 3600.0,
                                             maxiter = 1e4,
                                             printlev = 1,
                                             printstep = 1,
@@ -93,7 +93,16 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     steplength = Inf
 
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
-    scen_sampling_distrib = Categorical(isnothing(qdistr) ? pb.probas : qdistr)
+    if isnothing(qdistr) || qdistr == :pdistr
+        scen_sampling_distrib = Categorical(pb.probas)
+    elseif qdistr == :unifdistr
+        scen_sampling_distrib = Categorical(ones(nscenarios) / nscenarios)
+    else
+        @assert typeof(qdistr)<:Array
+        @assert sum(qdistr) == 1
+        @assert length(qdistr) == nscenarios
+        scen_sampling_distrib = Categorical(qdistr)
+    end
 
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
@@ -139,7 +148,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
             if !isnothing(callback)
                 callback(pb, x, hist)
             end
-            
+
         end
 
         it += 1

@@ -1,37 +1,17 @@
-# ENV["OAR_NODEFILE"] = joinpath(".", "logdir", "config")
+using JSON, Dates, DataStructures
 using Distributed, OarClusterManager
+using JuMP
 
-@assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
-@assert get_ncoresmaster()+length(get_remotehosts())>1 "At least one worker should ba available for async alg."
-
-GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
-# GLOBAL_LOG_DIR = joinpath(".", "logdir")
-
-## Add all available workers
-!(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
-addprocs(get_ncoresmaster()-1)
-length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
-
-## Load relevant packages in all workers
-@everywhere push!(LOAD_PATH, pwd())
-@everywhere using RPH, JuMP
-
-using GLPK, Ipopt, LinearAlgebra
-using DataStructures, Dates, DelimitedFiles, JSON
-
-include("../examples/build_simpleexample.jl")
-include("../examples/build_hydrothermalscheduling_extended.jl")
 include("utils.jl")
 
-
-function main()
-    println("Entering main()")
+function execute_algs_on_problems(problems, algorithms)
+    println("Entering execute_algs_on_problems()")
     println("- Date is: ", String(Dates.format(now(), "yyyy_mm_dd-HHhMM")))
     println("  Path is: ", pwd())
     println("- ENV[\"OAR_NODEFILE\"]: ", get(ENV, "OAR_NODEFILE", ""))
     println("  # available cores on master node : ", get_ncoresmaster())
     println("  # available remote cores         : ", length(get_remotehosts()))
-    println("  # workers()                      : ", length(workers()))
+    println("  # length(workers())              : ", length(workers()))
 
     ## Set up logging directory
     logdir = set_logdir()
@@ -39,40 +19,10 @@ function main()
     println()
 
 
-    ## Build problems to be solved
-    problems = []
-
-    # push!(problems, OrderedDict(
-    #     :pbname => "simpleproblem",
-    #     :pb => build_simpleexample(),
-    # ))
-    push!(problems, OrderedDict(
-        :pbname => "hydrothermal_10stages_20dams",
-        :pb => build_hydrothermalextended_problem(;nstages=10, ndams=20),
-    ))
-
-    ## Set number of seeds to be tried
-    maxtime = 3*60*60
-    maxiter = 1e9
-    seeds = 1:3
-
-    ## Build algorithms & params used for solve
-    algorithms = []
-
-    push!(algorithms, OrderedDict(
-        :algoname => "randomized_async",
-        :fnsolve_symbol => :solve_randomized_async,
-        :maxtime => maxtime,
-        :maxiter => maxiter,
-        :seeds => seeds,
-        :printstep => 20,
-    ))
-
-
     println("Experiment summarys:")
     println("  #problems:  ", length(problems))
     println("  algorithms: ", [a[:fnsolve_symbol] for a in algorithms])
-    println("  seeds:      ", seeds)
+    println("  seeds:      ", [a[:seeds] for a in algorithms])
     println()
 
     ## Logging object
@@ -81,26 +31,28 @@ function main()
 
     ## Run all algorithms once to precompile everything
     println("[", String(Dates.format(now(), "HHhMM SS")), "] Running algs once to precompile...")
-    runallalgs(;runasync=true)
+    runallalgs()
 
     ## Solve
     for problem_descr in problems
-        @show problem_descr
         pb = problem_descr[:pb]
         pbname = problem_descr[:pbname]
         println("\n- [", String(Dates.format(now(), "HHhMM SS")), "] Dealing with new problem:")
         println(pb)
+        @show problem_descr[:optimizer]
+        @show problem_descr[:optimizer_params]
 
         
         algo_to_seedhist = OrderedDict{String, Any}()
 
 
         ## First, solve pb up to reasonable precision. Get optimal objective, solution.
-        println("[", String(Dates.format(now(), "HHhMM SS")), "] Long ph solve...")
+        println("[", String(Dates.format(now(), "HHhMM SS")), "] Long global solve...")
         xsol = nothing
         fopt = nothing
         try
-            xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=4*60*60, maxiter=1e6, printstep=10)
+            # xsol = solve_progressivehedging(pb, ϵ_primal=1e-10, ϵ_dual=1e-10, maxtime=4*60*60, maxiter=1e6, printstep=10)
+            xsol = problem_descr[:fnglobalsolve](pb)
             fopt = objective_value(pb, xsol)
         catch e
             println("Error during ph solve.")
@@ -116,11 +68,12 @@ function main()
             
             algo_to_seedhist[algo_descr[:algoname]] = OrderedDict()
             algo_to_seedhist[algo_descr[:algoname]][:fnsolve_symbol] = algo_descr[:fnsolve_symbol]
-            algo_to_seedhist[algo_descr[:algoname]][:maxtime] = algo_descr[:maxtime]
-            algo_to_seedhist[algo_descr[:algoname]][:maxiter] = algo_descr[:maxiter]
             algo_to_seedhist[algo_descr[:algoname]][:seeds] = algo_descr[:seeds]
+            merge!(algo_to_seedhist[algo_descr[:algoname]], algo_descr[:fnsolve_params])
+            algo_to_seedhist[algo_descr[:algoname]][:optimizer] = problem_descr[:optimizer]
+            algo_to_seedhist[algo_descr[:algoname]][:optimizer_params] = problem_descr[:optimizer_params]
             algo_to_seedhist[algo_descr[:algoname]][:nworkers] = length(workers())
-            
+
             fnsolve = eval(algo_descr[:fnsolve_symbol])
 
             for seed in algo_descr[:seeds]
@@ -132,13 +85,11 @@ function main()
                 !isnothing(xsol) && (hist[:approxsol] = xsol)
 
                 println("\n--------------------------------------------------------")
-                fnsolve(pb; maxtime = algo_descr[:maxtime], 
-                            maxiter = algo_descr[:maxiter], 
-                            printstep = algo_descr[:printstep],
+                fnsolve(pb; algo_descr[:fnsolve_params]...,
+                            optimizer = problem_descr[:optimizer],
+                            optimizer_params = problem_descr[:optimizer_params],
                             hist = hist, 
-                            seed = seed, 
-                            ϵ_primal = 1e-10, 
-                            ϵ_dual = 1e-10)
+                            seed = seed)
                 println("--------------------------------------------------------\n")
 
                 # Log seed, algo
@@ -148,10 +99,11 @@ function main()
         end
 
         problem_to_algo[pbname] = algo_to_seedhist
-        problem_to_algo["nstages"] = pb.nstages
-        problem_to_algo["nscenarios"] = pb.nscenarios
-        problem_to_algo["subpbdim"] = sum(length.(pb.stage_to_dim))
-        problem_to_algo["nworkers"] = length(workers())
+        problem_to_algo[pbname]["algorithms"] = collect(keys(algo_to_seedhist))
+        problem_to_algo[pbname]["nstages"] = pb.nstages
+        problem_to_algo[pbname]["nscenarios"] = pb.nscenarios
+        problem_to_algo[pbname]["subpbdim"] = sum(length.(pb.stage_to_dim))
+        # problem_to_algo[pbname]["nworkers"] = length(workers())
     end
 
     ## Write log information
@@ -161,5 +113,3 @@ function main()
     println("[", String(Dates.format(now(), "HHhMM SS")), "] All done.")
     return
 end
-
-main()

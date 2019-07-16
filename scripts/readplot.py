@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-#import matplotlib2tikz
+import matplotlib2tikz
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -35,15 +35,20 @@ for pb in pbnames:
 
     results = data[pb] # RESULTS PARTS
 
+    if "nstages" in data:
+        T = data["nstages"]
+        S = data["nscenarios"]
+        # W = data["nworkers"]
+    else:
+        T = results["nstages"]
+        S = results["nscenarios"]
+        # W = results["nworkers"]
 
-    T = data["nstages"]
-    S = data["nscenarios"]
-    W = data["nworkers"]
 
-
-
-
-    algorithms = results.keys()
+    if "algorithms" in results:
+        algorithms = results["algorithms"]
+    else:
+        algorithms = results.keys()
 
     cmap = plt.get_cmap("nipy_spectral")
     colors_val = cmap(np.linspace(0, 1, len(algorithms)))
@@ -70,7 +75,7 @@ for pb in pbnames:
         if alg in results:
             RES = results[alg]["1"]
             step = results[alg]["1"]["logstep"]
-            F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
             C = [step*i for i in range(len(F))]
 
             plt.plot(C,F,label=names[alg],color=colors[alg])
@@ -80,7 +85,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"Subopt_Calls"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
+    matplotlib2tikz.save(path+"Subopt_Calls"+pb+".tex")
 
 
     ########################################
@@ -99,7 +104,7 @@ for pb in pbnames:
 
             RES = results[alg]["1"]
             step = results[alg]["1"]["logstep"]
-            F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+            F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
             C = [step*i for i in range(len(F))]
 
             plt.plot(C,F,label=names[alg],color=colors[alg])
@@ -108,7 +113,7 @@ for pb in pbnames:
                 srun = seeds[run]
                 RES = results[alg][srun]
                 step = results[alg][srun]["logstep"]
-                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
                 C = [step*i for i in range(len(F))]
 
                 plt.plot(C,F,color=colors[alg])
@@ -118,7 +123,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"ALL_Subopt_Calls"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Calls.tex")
+    matplotlib2tikz.save(path+"ALL_Subopt_Calls"+pb+".tex")
 
     ########################################
     ### SUBOPTIMALITY vs TIME
@@ -137,7 +142,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"Subopt_Time"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
+    matplotlib2tikz.save(path+"Subopt_Time"+pb+".tex")
 
 
     ########################################
@@ -167,7 +172,7 @@ for pb in pbnames:
                 srun = seeds[run]
                 RES = results[alg][srun]
                 step = results[alg][srun]["logstep"]
-                F = [(f - fmin)/fmin for f in RES["functionalvalue"]]
+                F = [abs((f - fmin)/fmin) for f in RES["functionalvalue"]]
                 T = RES["time"]
 
                 plt.plot(T,F,color=colors[alg])
@@ -177,7 +182,7 @@ for pb in pbnames:
     plt.yscale('log', nonposy='clip')
     plt.legend()
     plt.savefig(path+"ALL_Subopt_Time"+pb+".png")
-    #matplotlib2tikz.save("./Tex/Subopt_Time.tex")
+    matplotlib2tikz.save(path+"ALL_Subopt_Time"+pb+".tex")
 
 
     ########################################
@@ -229,5 +234,5 @@ for pb in pbnames:
     plt.legend()
     plt.yscale('log', nonposy='clip')
     plt.savefig(path+"SuboptFill_Calls"+pb+".png")
-    #matplotlib2tikz.save("./Tex/SuboptFill_Calls.tex")
+    matplotlib2tikz.save(path+"SuboptFill_Calls"+pb+".tex")
 
