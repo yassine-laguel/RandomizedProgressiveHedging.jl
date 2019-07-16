@@ -74,6 +74,8 @@ function execute_algs_on_problems(problems, algorithms)
             algo_to_seedhist[algo_descr[:algoname]][:optimizer_params] = problem_descr[:optimizer_params]
             algo_to_seedhist[algo_descr[:algoname]][:nworkers] = length(workers())
 
+            haskey(algo_to_seedhist[algo_descr[:algoname]], :callback) && delete!(algo_to_seedhist[algo_descr[:algoname]], :callback)
+
             fnsolve = eval(algo_descr[:fnsolve_symbol])
 
             for seed in algo_descr[:seeds]
