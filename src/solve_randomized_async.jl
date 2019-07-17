@@ -305,7 +305,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
             !isnothing(hist) && push!(hist[:time], time() - tinit)
             !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
             if !isnothing(callback)
-                callback(pb, x, hist)
+                callback(pb, z_feas, hist)
             end
         end
 

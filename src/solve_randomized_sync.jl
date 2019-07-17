@@ -146,7 +146,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
             !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
 
             if !isnothing(callback)
-                callback(pb, x, hist)
+                callback(pb, x_feas, hist)
             end
 
         end
