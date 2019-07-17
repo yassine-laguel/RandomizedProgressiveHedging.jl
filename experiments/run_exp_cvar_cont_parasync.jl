@@ -2,18 +2,19 @@
 using Distributed, OarClusterManager
 
 @assert basename(pwd())=="RPH.jl" "This script should be run from the RPH.jl folder."
+@assert get_ncoresmaster()+length(get_remotehosts())>1 "At least one worker should ba available for async alg."
 
 GLOBAL_LOG_DIR = joinpath("/", "bettik", "PROJECTS", "pr-cvar", "RPH_num_exps")
 # GLOBAL_LOG_DIR = joinpath(".", "logdir")
 
 ## Add all available workers
-# !(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
-# addprocs(get_ncoresmaster()-1)
-# length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
+!(workers() == Vector([1])) && (rmprocs(workers()); println("removing workers"))
+addprocs(get_ncoresmaster()-1)
+length(get_remotehosts())>0 && addprocs_oar(get_remotehosts())
 
 ## Load relevant packages in all workers
-push!(LOAD_PATH, pwd())
-using RPH, JuMP
+@everywhere push!(LOAD_PATH, pwd())
+@everywhere using RPH, JuMP
 
 using GLPK, Ipopt, LinearAlgebra
 using DataStructures, DelimitedFiles
