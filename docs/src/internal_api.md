@@ -12,21 +12,24 @@ RPH.ph_subproblem_solve
 
 ## Synchronous
 ```@docs
-RPH.randomizedsync_initialization!
-RPH.randomizedsync_subpbsolve
+RPH.randsync_subproblem_solve
+RPH.randsync_initialization!
 ```
 
 ## Synchronous parallel
-TODO
 ```@docs
+RPH.randpar_remote_func
+RPH.randpar_initialization!
+RPH.randpar_init_workers
+RPH.randpar_terminate_workers
 ```
 
 ## Asynchronous
 ```@docs
-RPH.AsyncSubproblemTask
-RPH.do_remote_work_async
-RPH.randomizedasync_initialization_async!
-RPH.init_workers_async
+RPH.randasync_remote_func
+RPH.randasync_initialization!
+RPH.randasync_init_workers
+RPH.randasync_terminate_workers
 ```
 
 ## Projections
@@ -42,4 +45,7 @@ RPH.nonanticipatory_projection!
 RPH.get_neighbydepth
 RPH.get_scenariodim
 RPH.dot
+```
+
+```@docs
 ```

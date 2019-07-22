@@ -1,7 +1,9 @@
 """
     Problem(scenarios::Vector{T}, buildsubpb::Function, probas::Vector{Float64}, stage_to_dim::Vector{UnitRange{Int}}, stagetoscenpart::Vector{OrderedSet{BitSet}}) where T<:AbstractScenario
 
-TODO
+Build a [`Problem`](@ref) object from stage decomposition based representation of the non anticipatory structure, of type `Vector{OrderedSet{BitSet}}`.
+
+**Note**: this representation is converted into a tree structure, which is better suited for needed computations. If possible, prefer using helper functions building directly the tree object (see [`ScenarioTree`](@ref))
 """
 function Problem(scenarios::Vector{T}, buildsubpb::Function, probas::Vector{Float64}, stage_to_dim::Vector{UnitRange{Int}}, stagetoscenpart::Vector{OrderedSet{BitSet}}) where T<:AbstractScenario
 

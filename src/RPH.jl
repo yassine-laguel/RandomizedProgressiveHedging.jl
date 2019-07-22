@@ -107,13 +107,22 @@ include("ScenarioTree.jl")
 
 ###############################################################################
 ## Progressive Hedging problem structure
-# Assumptions:
-# - scenid takes values from 1 to nscenarios
-# - stages takes values from 1 to nstages
 """
     Problem{T}
 
-TODO
+Describe the problem exactly. Attributes are:
+- `scenarios::Vector{T}`: vector of all scenario objects of type `T <: AbstractScenario`
+- `build_subpb::Function`: function specializing [`build_fs!`](@ref)
+- `probas::Vector{Float64}`: vector of probability of scenarios, defining objective expectation.
+- `nscenarios::Int`: number of scenarios.
+- `nstages::Int`: number of stages.
+- `stage_to_dim::Vector{UnitRange{Int}}`: map stage to set of corresponding indices of a scenario vector variable.
+- `scenariotree::ScenarioTree`: hold the non-anticipatory structure as a [`ScenarioTree`](@ref) object.
+
+Remarks:
+---
+- indexing of scenarios and stages should take values in `1:nscenarios` and `1:nstages` respectively.
+- for any stage, the set of indices of scenarios indistinguishable up to this point should be packed, that is look like `n1:n2`.
 """
 struct Problem{T}
     scenarios::Vector{T}
@@ -139,7 +148,7 @@ end
 """
     get_scenariodim(pb::Problem)
 
-TODO
+Return the dimension of the vector representing a scenario.
 """
 function get_scenariodim(pb::Problem)
     return sum(length.(pb.stage_to_dim))
@@ -148,6 +157,7 @@ end
 include("Problem.jl")
 include("projections.jl")
 include("riskmeasures.jl")
+include("solve_utils.jl")
 
 ## Solvers
 include("solve_direct.jl")
@@ -159,7 +169,5 @@ include("solve_randomized_async.jl")
 export AbstractScenario, ScenarioId, Problem, ScenarioTree, objective_value, build_fs!
 export AbstractRiskMeasure, RiskNeutral, CVar
 export solve_direct, solve_progressivehedging, solve_randomized_sync,  solve_randomized_par,  solve_randomized_async
-
-## Test problems
 
 end
