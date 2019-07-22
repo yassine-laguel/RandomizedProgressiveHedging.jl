@@ -9,7 +9,7 @@ using RPH, Ipopt
 include("build_hydrothermalscheduling_extended.jl")
 
 function main()
-    nstages = 7
+    nstages = 5
     # pb = build_hydrothermal_problem(nstages = nstages)
     pb = build_hydrothermalextended_problem(nstages = nstages, ndams=5)
 

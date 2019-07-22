@@ -1,6 +1,6 @@
 function display_algopb_stats(pb::Problem, algoname, printlev; maxiter, maxtime, kwargs...)
     if printlev > 0
-        println("--------------------------------------------------------")
+        println("\n--------------------------------------------------------")
         println("--- $algoname")
         println("--------------------------------------------------------")
         println("Problem with:")
@@ -9,11 +9,12 @@ function display_algopb_stats(pb::Problem, algoname, printlev; maxiter, maxtime,
         println(" - variable dimension : ", get_scenariodim(pb))
         println("Algorithm parameters:")
 
-        @printf " - %-10s  %-6i    - %-10s  %-6i\n" "maxiter" maxiter "maxtime" maxtime
+        @printf " - %-10s  %-6i    - %-10s  %-6i" "maxiter" maxiter "maxtime" maxtime
         for (param, pval) in kwargs
-            @printf " - %-10s  " param
+            @printf "\n - %-10s  " param
             display(pval)
         end
+        println("")
     end
     return
 end

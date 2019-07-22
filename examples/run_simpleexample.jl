@@ -54,9 +54,6 @@ function main()
     println("Asynchronous solve output is:")
     display(y_asynch)
 
-
-    @show norm(y_direct - y_par)
-    
     return
 end
 
