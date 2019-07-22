@@ -134,17 +134,6 @@ struct Problem{T}
     scenariotree::ScenarioTree
 end
 
-###############################################################################
-## Risk measure
-abstract type AbstractRiskMeasure end
-
-struct RiskNeutral <: AbstractRiskMeasure
-end
-
-struct CVar <: AbstractRiskMeasure 
-    p::Float64
-end
-
 """
     get_scenariodim(pb::Problem)
 
@@ -156,7 +145,7 @@ end
 
 include("Problem.jl")
 include("projections.jl")
-include("riskmeasures.jl")
+include("cvar_transform.jl")
 include("solve_utils.jl")
 
 ## Solvers
@@ -167,7 +156,6 @@ include("solve_randomized_par.jl")
 include("solve_randomized_async.jl")
 
 export AbstractScenario, ScenarioId, Problem, ScenarioTree, objective_value, build_fs!
-export AbstractRiskMeasure, RiskNeutral, CVar
 export solve_direct, solve_progressivehedging, solve_randomized_sync,  solve_randomized_par,  solve_randomized_async
 
 end

@@ -8,24 +8,17 @@
 
 ## Installation
 
+The package si installed with the following command:
 ```julia
 ]add https://github.com/yassine-laguel/RPH.jl#master
 ```
+GLPK, Ipopt are installed along as default solvers. Other solvers can of course be used, see [JuMP doc](http://www.juliaopt.org/JuMP.jl/v0.19.0/installation/#Getting-Solvers-1) for installation and `example/` scripts for use.
 
 ## Example
 
-Many example scripts are available in the `example` folder. A good place to start is:
+Many example scripts are available in the `example/` folder. A good place to start is:
 - the [doc](---)!
 - the [`examples/tutorial.ipynb`](https://github.com/yassine-laguel/RPH.jl/blob/master/examples/tutorial.ipynb) jupyter notebook
 - the script [`examples/simple_example.jl`](https://github.com/yassine-laguel/RPH.jl/blob/master/examples/tutorial.jl)
 
-For distributed solve, launch julia as `julia -p 3` for 2 workers and a master thread.
-
-## TODOs
-
-### elementary
-- [ ] [doc] Write documentation, readme
-- [ ] [doc] Document functions properly
-- [ ] [dev] make hydrothermal example fully parametric in nstages and nbraching
-- [ ] Remove useless deps
-- [ ] Refactor CVar
+For distributed solve on local machine, launch e.g. julia as `julia -p 3` for 2 workers and a master thread. On a cluster, add workers with either `addprocs` on ssh connection, or use an adapted [cluster manager](https://github.com/JuliaParallel/ClusterManagers.jl).

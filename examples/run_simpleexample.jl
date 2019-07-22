@@ -21,34 +21,30 @@ function main()
     println("Full problem is:")
     println(pb)
 
-    cvar = CVar(0.1)
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    # y_direct = solve_direct(pb, optimizer = Ipopt.Optimizer, printlev=0, riskmeasure=cvar)
     y_direct = solve_direct(pb, optimizer = Ipopt.Optimizer, printlev=0)
-    # y_direct = solve_direct(pb, optimizer = Ipopt.Optimizer, printlev=0, riskmeasure=RiskNeutral)
     println("\nDirect solve output is:")
     display(y_direct)
     println("")
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    # y_PH = solve_progressivehedging(pb, maxtime=1.5, printstep=2, hist=hist, riskmeasure=cvar)
-    # y_PH = solve_progressivehedging(pb, maxtime=1.5, printstep=2, hist=hist)
-    # println("\nSequential solve output is:")
-    # display(y_PH)
-    # println("")
+    y_PH = solve_progressivehedging(pb, maxtime=1.5, printstep=2, hist=hist)
+    println("\nSequential solve output is:")
+    display(y_PH)
+    println("")
     
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    # y_synch = solve_randomized_sync(pb, maxtime=1.5, printstep=10)
-    # println("\nSynchronous solve output is:")
-    # display(y_synch)
+    y_synch = solve_randomized_sync(pb, maxtime=1.5, printstep=10, hist=hist)
+    println("\nSynchronous solve output is:")
+    display(y_synch)
 
     #########################################################
     ## Problem solve: asynchronous (parallelized) version of PH
     y_par = solve_randomized_par(pb, maxtime=1.5, printstep=10, hist=hist)
-    println("Random PAr solve output is:")
+    println("\nRandom Par solve output is:")
     display(y_par)
 
     

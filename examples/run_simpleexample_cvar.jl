@@ -21,10 +21,9 @@ function main()
     println("Full problem is:")
     println(pb)
 
-    safety_level = 0.8
+    cvar_lev = 0.8
 
-    cvar = CVar(safety_level)
-    pbcvar = cvar_problem(pb, cvar)
+    pbcvar = cvar_problem(pb, cvar_lev)
 
 
     function callback(cvar_pb::Problem, x, hist)
@@ -37,7 +36,7 @@ function main()
 
         @variable(model, eta)
         @variable(model, m[1:pb.nscenarios])
-        @objective(model, Min, eta + 1/(1-safety_level) * sum(pb.probas[i] * m[i] for i in 1:pb.nscenarios))
+        @objective(model, Min, eta + 1/(1-cvar_lev) * sum(pb.probas[i] * m[i] for i in 1:pb.nscenarios))
         @constraint(model, m .>= 0 )
         @constraint(model, [i in 1:pb.nscenarios], m[i]>= fvalues[i] - eta)
 

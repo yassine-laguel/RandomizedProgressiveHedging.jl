@@ -1,7 +1,7 @@
 export cvar_problem
 
 """
-    pb_cvar = cvar_problem(pb::Problem, cvar::CVar)
+    pb_cvar = cvar_problem(pb::Problem, cvarlevel::Real)
 
 Build the problem with risk measure corresponding to `cvar`.
 """
