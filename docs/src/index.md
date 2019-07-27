@@ -1,6 +1,6 @@
 # RPH.jl Documentation
 
-This module aims to solve multistage stochastic problems by randimized versions of the progressive hedging algorihthm.
+This module aims to solve multistage stochastic problems by randomized versions of the progressive hedging algorithm.
 
 ## Contents
 ```@contents
