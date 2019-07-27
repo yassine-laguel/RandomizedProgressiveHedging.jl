@@ -11,7 +11,7 @@ using Mosek, MosekTools
 include("build_hydrothermalscheduling_milp.jl")
 
 function main()
-    pb = build_hydrothermalextendedmilp_problem(nstages = 4, ndams=3)
+    pb = build_hydrothermalextendedmilp_problem(nstages = 2, ndams=3)
 
     println("Full problem is:")
     println(pb)
@@ -60,9 +60,6 @@ function main()
     println("Asynchronous solve output is:")
     display(y_async);
 
-    # @show norm(y_sync - y_PH)
-    # @show norm(y_sync - y_sync)
-    # @show norm(y_sync - y_async)
 
     println("\nDirect solve output is:")
     display(y_direct);

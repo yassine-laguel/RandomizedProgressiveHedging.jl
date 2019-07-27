@@ -1,8 +1,3 @@
-"""
-    AsyncSubproblemTask{T}
-
-TODO
-"""
 struct AsyncSubproblemTask{T}
     taskid::Int
     scenario::T
@@ -11,19 +6,18 @@ struct AsyncSubproblemTask{T}
 end
 
 """
-    do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel)
+    randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with
 the scenario `id_scen`.
 """
-function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
+function randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
     params = take!(paramschan)
     μ = params[:μ]
     build_fs = params[:build_fs]
 
     while true
         try
-            t0 = time()
             subpbtask::AsyncSubproblemTask = take!(inwork)
 
             if subpbtask.taskid == -1  # Work finished
@@ -35,6 +29,7 @@ function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, para
             # Get scenario objective function, build constraints in model
             y, obj, ctrref = build_fs(model, subpbtask.scenario, subpbtask.id_scenario)
 
+            # Subproblem full objective
             obj += (1/2*μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
 
             @objective(model, Min, obj)
@@ -45,7 +40,6 @@ function do_remote_work_async(inwork::RemoteChannel, outres::RemoteChannel, para
             end
 
             put!(outres, (JuMP.value.(y), subpbtask.taskid))
-            # println(time()-t0)
         catch e
             println("Worker error:")
             println(e)
@@ -55,11 +49,11 @@ end
 
 
 """
-    init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
+    randasync_init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
 
-TODO
+Launch `asyncpar_remote_func` in every available worker with correct channels, and pass `subpbparams` to each worker.
 """
-function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
+function randasync_init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
     if workers() == Vector([1])
         @error "No workers available. Returning"
         return
@@ -71,7 +65,7 @@ function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:
     results_channel = RemoteChannel(()->Channel{Tuple{Vector{Float64}, Int}}(nworkers))
     params_channel = RemoteChannel(()->Channel{Dict{Symbol,Any}}(nworkers))
 
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work_async,
+    remotecalls_futures = OrderedDict(worker_id => remotecall(randasync_remote_func,
                                                               worker_id,
                                                               work_channel,
                                                               results_channel,
@@ -83,7 +77,12 @@ function init_workers_async(pb::Problem{T}, subpbparams::AbstractDict) where T<:
     return work_channel, results_channel, params_channel, remotecalls_futures
 end
 
-function terminate_workers_async(pb, work_channel, remotecalls_futures)
+"""
+    randasync_terminate_workers(pb, work_channel, remotecalls_futures)
+
+Send a signal so that all workers return and wait that all workers do.
+"""
+function randasync_terminate_workers(pb, work_channel, remotecalls_futures)
     closing_task = AsyncSubproblemTask(
         -1,                 ## Stop signal
         pb.scenarios[1],
@@ -101,11 +100,13 @@ function terminate_workers_async(pb, work_channel, remotecalls_futures)
 end
 
 """
-    randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
 
-TODO
+Compute a first global feasible point by solving each scenario independently and projecting 
+the global strategy obtained onto the non-anticipatory subspace. Independent solves are distributed
+on available workers.
 """
-function randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+function randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     printlev>0 && print("Initialisation... ")
     xz_scen = zeros(get_scenariodim(pb))
     cur_scen = 1
@@ -136,7 +137,7 @@ function randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev,
 end
 
 
-function init_hist_async!(hist, printstep)
+function randasync_init_hist!(hist, printstep)
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && (hist[:maxdelay] = Int32[])
@@ -145,7 +146,7 @@ function init_hist_async!(hist, printstep)
     return
 end
 
-function get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
+function randasync_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
@@ -164,14 +165,17 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 ## Keyword arguments:
 - `μ`: Regularization parameter.
 - `c`: parameter for step length.
-- `stepsize`: if nothing uses theoretical formula for stepsize, otherwise uses constant numerical value.
-- `qdistr`: if not nothing, specifies the probablility distribution for scenario sampling.
+- `stepsize`: if `nothing` uses theoretical formula for stepsize, otherwise uses constant numerical value.
+- `qdistr`: strategy of scenario sampling for subproblem selection,
+    + `:pdistr`: samples according to objective scenario probability distribution,
+    + `:unifdistr`: samples according to uniform distribution,
+    + otherwise, an `Array` specifying directly the probablility distribution.
 - `maxtime`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
-- `seed`: if not nothing, specifies the seed used for scenario sampling.
-- `hist`: if not nothing, will record:
+- `seed`: if not `nothing`, specifies the seed used for scenario sampling.
+- `hist`: if not `nothing`, will record:
     + `:functionalvalue`: array of functional value indexed by iteration,
     + `:time`: array of time at the end of each iteration, indexed by iteration,
     + `:number_waitingworkers`: array of number of wainting workers, indexed by iteration,
@@ -180,11 +184,13 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
+- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each 
+log phase. `x` is the current feasible global iterate.
 """
 function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 c = 0.9,
                                                 stepsize::Union{Nothing, Float64} = nothing,
-                                                qdistr = nothing,
+                                                qdistr = :pdistr,
                                                 maxtime = 3600,
                                                 maxiter = 1e5,
                                                 printlev = 1,
@@ -195,9 +201,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                 callback=nothing,
                                                 kwargs...) where T<:AbstractScenario
-    printlev>0 && println("--------------------------------------------------------")
-    printlev>0 && println("--- Randomized Progressive Hedging - asynchronous")
-    printlev>0 && println("--------------------------------------------------------")
+    display_algopb_stats(pb, "Randomized Progressive Hedging - asynchronous", printlev, μ=μ, c=c, stepsize=stepsize, qdistr=qdistr, maxtime=maxtime, maxiter=maxiter)
 
     # Variables
     nworkers = length(workers())
@@ -226,14 +230,15 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)
 
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
-
-    init_hist_async!(hist, printstep)
     delay = 0
-    subpbparams = get_defaultsubpbparams_async(pb, optimizer, optimizer_params, μ)
+
+    randasync_init_hist!(hist, printstep)
+
+    subpbparams = randasync_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
-    work_channel, results_channel, params_channel, remotecalls_futures = init_workers_async(pb, subpbparams)
+    work_channel, results_channel, params_channel, remotecalls_futures = randasync_init_workers(pb, subpbparams)
 
     taskid_to_xcoord = Dict{Int, ScenarioId}()
     taskid_to_idscen = Dict{Int, ScenarioId}()
@@ -244,7 +249,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     tinit = time()
     printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
 
-    it = randomizedasync_initialization_async!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    it = randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
 
     printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it 0.0 objective_value(pb, z) τ 0
 
@@ -262,6 +267,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
     while it < maxiter && time()-tinit < maxtime
 
+        ## Get a completed task
         y, taskid = take!(results_channel)
         x_coord = taskid_to_xcoord[taskid]; delete!(taskid_to_xcoord, taskid)
         id_scen = taskid_to_idscen[taskid]; delete!(taskid_to_idscen, taskid)
@@ -305,7 +311,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
             !isnothing(hist) && push!(hist[:time], time() - tinit)
             !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
             if !isnothing(callback)
-                callback(pb, x, hist)
+                callback(pb, z_feas, hist)
             end
         end
 
@@ -320,7 +326,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     printlev>0 && println("Computation time: ", time() - tinit)
 
     ## Terminate all workers
-    terminate_workers_async(pb, work_channel, remotecalls_futures)
+    randasync_terminate_workers(pb, work_channel, remotecalls_futures)
 
     return z_feas
 end

@@ -1,23 +1,3 @@
-function build_global_objective!(model, pb::Problem, scen_to_obj, ::Type{RiskNeutral})
-    @objective(model, Min, sum(proba_s * scen_to_obj[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
-    return nothing
-end
-
-function build_global_objective!(model, pb::Problem, scen_to_obj, cvar::CVar)
-    nscenarios = pb.nscenarios
-
-    @variable(model, η)
-    @variable(model, maxvals[1:nscenarios])
-
-    @objective(model, Min, η + sum(proba_s / (1-cvar.p) * maxvals[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
-
-    ## Constraint enforcing maxvals[i] = max(0, f_i(x_i)-η)
-    @constraint(model, maxvals .>= 0)
-    @constraint(model, [id_s=1:nscenarios], maxvals[id_s] >= scen_to_obj[id_s] - η )
-
-    return nothing
-end
-
 """
     x = solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
 
@@ -29,8 +9,7 @@ constraints, and solve globally.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 - `printlev`: if 0, mutes output from the function (not solver). Default value is 1.
 """
-function solve_direct(pb::Problem; riskmeasure = RiskNeutral, 
-                                   optimizer = GLPK.Optimizer, 
+function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, 
                                    optimizer_params = Dict{Symbol, Any}(),
                                    printlev = 1)
     printlev>0 && println("--------------------------------------------------------")
@@ -53,7 +32,7 @@ function solve_direct(pb::Problem; riskmeasure = RiskNeutral,
     end
 
     # Layout global objective
-    build_global_objective!(model, pb, scen_to_obj, riskmeasure)
+    @objective(model, Min, sum(proba_s * scen_to_obj[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
 
     ## Non anticipatory constraints
     printlev>0 && println("Laying out nonanticipatory constraints...")

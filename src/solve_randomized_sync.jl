@@ -1,10 +1,10 @@
 """
-    randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
+    randsync_subproblem_solve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`xz_scen`)' where 'f_s' is the cost function associated with
 the scenario `id_scen`.
 """
-function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params::AbstractDict)
+function randsync_subproblem_solve(pb::Problem, id_scen::ScenarioId, xz_scen, μ, params::AbstractDict)
     n = sum(length.(pb.stage_to_dim))
 
     ## Regalurized problem
@@ -13,8 +13,8 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
 
-    # Augmented lagragian subproblem full objective
-    obj += (1/2*μ) * sum((y[i] - xz_scen[i])^2 for i in 1:n) ## TODO: replace with more explicit formula for efficiency
+    # Subproblem full objective
+    obj += (1/2*μ) * sum((y[i] - xz_scen[i])^2 for i in 1:n)
     @objective(model, Min, obj)
 
     optimize!(model)
@@ -26,16 +26,17 @@ function randomizedsync_subpbsolve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
 end
 
 """
-    randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
+    randsync_initialization!(z, pb, μ, subpbparams, printlev, it)
 
-TODO
+Compute a first global feasible point by solving each scenario independently and projecting 
+the global strategy obtained onto the non-anticipatory subspace.
 """
-function randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
+function randsync_initialization!(z, pb, μ, subpbparams, printlev, it)
     printlev>0 && print("Initialisation... ")
 
     xz_scen = zeros(get_scenariodim(pb))
     for id_scen in 1:pb.nscenarios
-        z[id_scen, :] = randomizedsync_subpbsolve(pb, id_scen, xz_scen, μ, subpbparams)
+        z[id_scen, :] = randsync_subproblem_solve(pb, id_scen, xz_scen, μ, subpbparams)
         it += 1
     end
     nonanticipatory_projection!(z, pb, z)
@@ -44,7 +45,7 @@ function randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
 end
 
 """
-    solve_randomized_sync(pb::Problem)
+    x = solve_randomized_sync(pb::Problem)
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 
@@ -52,22 +53,28 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 
 ## Keyword arguments:
 - `μ`: Regularization parameter.
-- `qdistr`: if not nothing, specifies the probablility distribution for scenario sampling.
+- `qdistr`: strategy of scenario sampling for subproblem selection,
+    + `:pdistr`: samples according to objective scenario probability distribution,
+    + `:unifdistr`: samples according to uniform distribution,
+    + otherwise, an `Array` specifying directly the probablility distribution.
 - `maxtime`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
-- `seed`: if not nothing, specifies the seed used for scenario sampling.
-- `hist`: if not nothing, will record:
+- `seed`: if not `nothing`, specifies the seed used for scenario sampling.
+- `hist`: if not `nothing`, will record:
     + `:functionalvalue`: array of functional value indexed by iteration,
     + `:time`: array of time at the end of each iteration, indexed by iteration,
-    + `:dist_opt`: if dict has entry `:approxsol`, array of distance between iterate and `hist[:approxsol]`, indexed by iteration.
+    + `:dist_opt`: if dict has entry `:approxsol`, array of distance between iterate and 
+    `hist[:approxsol]`, indexed by iteration.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
+- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each 
+log phase. `x` is the current feasible global iterate.
 """
-function solve_randomized_sync(pb::Problem; μ = 3,
-                                            qdistr = nothing,
+function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
+                                            qdistr = :pdistr,
                                             maxtime = 3600.0,
                                             maxiter = 1e4,
                                             printlev = 1,
@@ -78,9 +85,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
                                             optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                             callback=nothing,
                                             kwargs...)
-    printlev>0 && println("--------------------------------------------------------")
-    printlev>0 && println("--- Randomized Progressive Hedging - synchronous")
-    printlev>0 && println("--------------------------------------------------------")
+    display_algopb_stats(pb, "Randomized Progressive Hedging - synchronous", printlev, μ=μ, qdistr=qdistr, maxtime=maxtime, maxiter=maxiter)
 
     # Variables
     nstages = pb.nstages
@@ -92,6 +97,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     z = zeros(Float64, nscenarios, n)
     steplength = Inf
 
+    ## Random scenario sampling
     rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
     if isnothing(qdistr) || qdistr == :pdistr
         scen_sampling_distrib = Categorical(pb.probas)
@@ -117,17 +123,17 @@ function solve_randomized_sync(pb::Problem; μ = 3,
     tinit = time()
     printlev>0 && @printf "   it   global residual   objective\n"
 
-    it = randomizedsync_initialization!(z, pb, μ, subpbparams, printlev, it)
+    it = randsync_initialization!(z, pb, μ, subpbparams, printlev, it)
 
     printlev>0 && @printf "%5i   %.10e % .16e\n" it 0.0 objective_value(pb, z)
     while it < maxiter && time()-tinit < maxtime
         id_scen = rand(rng, scen_sampling_distrib)
 
         ## Projection
-        get_averagedtraj!(x, pb, z, id_scen) #TODO: rename with proj ?
+        get_averagedtraj!(x, pb, z, id_scen)
 
         ## Subproblem solve
-        y = randomizedsync_subpbsolve(pb, id_scen, 2*x-z[id_scen, :], μ, subpbparams)
+        y = randsync_subproblem_solve(pb, id_scen, 2*x-z[id_scen, :], μ, subpbparams)
 
         ## Global variable update
         z[id_scen, :] += (y - x)
@@ -146,7 +152,7 @@ function solve_randomized_sync(pb::Problem; μ = 3,
             !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
 
             if !isnothing(callback)
-                callback(pb, x, hist)
+                callback(pb, x_feas, hist)
             end
 
         end

@@ -1,11 +1,11 @@
 export cvar_problem
 
 """
-    pb_cvar = cvar_problem(pb::Problem, cvar::CVar)
+    pb_cvar = cvar_problem(pb::Problem, cvarlevel::Real)
 
 Build the problem with risk measure corresponding to `cvar`.
 """
-function cvar_problem(pb::Problem, cvar::CVar)
+function cvar_problem(pb::Problem, cvarlevel::Real)
     ## Define extended problem: change stage_to_dim
     new_dim_to_subspace = [1:2 for i in 1:pb.nstages]
     
@@ -20,7 +20,7 @@ function cvar_problem(pb::Problem, cvar::CVar)
         η = @variable(model)
         maxval = @variable(model)
 
-        cvarobj = η + maxval/(1-cvar.p)
+        cvarobj = η + maxval/(1-cvarlevel)
 
         con1 = @constraint(model, maxval >= 0)
         con2 = @constraint(model, maxval >= objexpr - η)

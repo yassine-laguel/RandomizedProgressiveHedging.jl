@@ -1,9 +1,4 @@
-"""
-    SubproblemTask{T}
-
-TODO
-"""
-struct SubproblemTask{T}
+struct ParSubproblemTask{T}
     taskid::Int
     scenario::T
     id_scenario::ScenarioId
@@ -11,20 +6,19 @@ struct SubproblemTask{T}
 end
 
 """
-    do_remote_work(inwork::RemoteChannel, outres::RemoteChannel)
+    randpar_remote_func(inwork::RemoteChannel, outres::RemoteChannel)
 
 Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' where 'f_s' is the cost function associated with
 the scenario `id_scen`.
 """
-function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
+function randpar_remote_func(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
     params = take!(paramschan)
     μ = params[:μ]
     build_fs = params[:build_fs]
 
     while true
         try
-            t0 = time()
-            subpbtask::SubproblemTask = take!(inwork)
+            subpbtask::ParSubproblemTask = take!(inwork)
 
             if subpbtask.taskid == -1  # Work finished
                 return
@@ -35,6 +29,7 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
             # Get scenario objective function, build constraints in model
             y, obj, ctrref = build_fs(model, subpbtask.scenario, subpbtask.id_scenario)
 
+            # Subproblem full objective
             obj += (1/2*μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
 
             @objective(model, Min, obj)
@@ -45,7 +40,6 @@ function do_remote_work(inwork::RemoteChannel, outres::RemoteChannel, paramschan
             end
 
             put!(outres, (JuMP.value.(y), subpbtask.id_scenario))
-            # println(time()-t0)
         catch e
             println("Worker error:")
             println(e)
@@ -55,11 +49,11 @@ end
 
 
 """
-    init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
+    randpar_init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
 
-TODO
+Launch `randpar_remote_func` in every available worker with correct channels, and pass `subpbparams` to each worker.
 """
-function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
+function randpar_init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:AbstractScenario
     if workers() == Vector([1])
         @error "No workers available. Returning"
         return
@@ -67,11 +61,11 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
 
     nworkers = length(workers())
 
-    work_channel = RemoteChannel(()->Channel{SubproblemTask{T}}(nworkers))
+    work_channel = RemoteChannel(()->Channel{ParSubproblemTask{T}}(nworkers))
     results_channel = RemoteChannel(()->Channel{Tuple{Vector{Float64}, Int}}(nworkers))
     params_channel = RemoteChannel(()->Channel{Dict{Symbol,Any}}(nworkers))
 
-    remotecalls_futures = OrderedDict(worker_id => remotecall(do_remote_work,
+    remotecalls_futures = OrderedDict(worker_id => remotecall(randpar_remote_func,
                                                               worker_id,
                                                               work_channel,
                                                               results_channel,
@@ -84,12 +78,12 @@ function init_workers(pb::Problem{T}, subpbparams::AbstractDict) where T<:Abstra
 end
 
 """
-    terminate_workers(pb, work_channel, remotecalls_futures)
+    randpar_terminate_workers(pb, work_channel, remotecalls_futures)
 
-TODO
+Send a signal so that all workers return and wait that all workers do.
 """
-function terminate_workers(pb, work_channel, remotecalls_futures)
-    closing_task = SubproblemTask(
+function randpar_terminate_workers(pb, work_channel, remotecalls_futures)
+    closing_task = ParSubproblemTask(
         -1,                 ## Stop signal
         pb.scenarios[1],
         0,
@@ -106,17 +100,19 @@ function terminate_workers(pb, work_channel, remotecalls_futures)
 end
 
 """
-    randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
 
-TODO
+Compute a first global feasible point by solving each scenario independently and projecting 
+the global strategy obtained onto the non-anticipatory subspace. Independent solves are distributed
+on available workers.
 """
-function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+function randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     printlev>0 && print("Initialisation... ")
     xz_scen = zeros(get_scenariodim(pb))
     cur_scen = 1
     ## First, feed as many scenarios as there are workers
     for id_worker in 1:min(length(workers()), pb.nscenarios)
-        put!(work_channel, SubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
+        put!(work_channel, ParSubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
         cur_scen += 1
     end
 
@@ -128,7 +124,7 @@ function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, w
 
         ## Submitting new task if necessary
         if cur_scen <= pb.nscenarios
-            put!(work_channel, SubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
+            put!(work_channel, ParSubproblemTask(cur_scen, pb.scenarios[cur_scen], cur_scen, xz_scen))
             cur_scen += 1
         end
         it += 1
@@ -141,7 +137,7 @@ function randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, w
 end
 
 
-function init_hist!(hist, printstep)
+function randpar_init_hist!(hist, printstep)
     !isnothing(hist) && (hist[:functionalvalue] = Float64[])
     !isnothing(hist) && (hist[:time] = Float64[])
     !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
@@ -149,7 +145,7 @@ function init_hist!(hist, printstep)
     return
 end
 
-function get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
+function randpar_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
@@ -168,13 +164,16 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 ## Keyword arguments:
 - `μ`: Regularization parameter.
 - `c`: parameter for step length.
-- `qdistr`: if not nothing, specifies the probablility distribution for scenario sampling.
+- `qdistr`: strategy of scenario sampling for subproblem selection,
+    + `:pdistr`: samples according to objective scenario probability distribution,
+    + `:unifdistr`: samples according to uniform distribution,
+    + otherwise, an `Array` specifying directly the probablility distribution.
 - `maxtime`: Limit time spent in computations.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
-- `seed`: if not nothing, specifies the seed used for scenario sampling.
-- `hist`: if not nothing, will record:
+- `seed`: if not `nothing`, specifies the seed used for scenario sampling.
+- `hist`: if not `nothing`, will record:
     + `:functionalvalue`: array of functional value indexed by iteration,
     + `:time`: array of time at the end of each iteration, indexed by iteration,
     + `:number_waitingworkers`: array of number of wainting workers, indexed by iteration,
@@ -183,10 +182,12 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
+- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each 
+log phase. `x` is the current feasible global iterate.
 """
 function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
                                                 c = 0.9,
-                                                qdistr = nothing,
+                                                qdistr = :pdistr,
                                                 maxtime = 3600,
                                                 maxiter = 1e5,
                                                 printlev = 1,
@@ -197,9 +198,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
                                                 optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                 callback=nothing,
                                                 kwargs...) where T<:AbstractScenario
-    printlev>0 && println("--------------------------------------------------------")
-    printlev>0 && println("--- Randomized Progressive Hedging - parallel")
-    printlev>0 && println("--------------------------------------------------------")
+    display_algopb_stats(pb, "Randomized Progressive Hedging - parallel", printlev, μ=μ, c=c, qdistr=qdistr, maxtime=maxtime, maxiter=maxiter)
 
     # Variables
     nworkers = length(workers())
@@ -209,6 +208,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
     x = zeros(Float64, nworkers, n)
     z = zeros(Float64, nscenarios, n)
+    z_prev = zeros(Float64, nscenarios, n)
     step = zeros(Float64, n)
     steplength = Inf
 
@@ -227,19 +227,19 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     qmin = minimum(scen_sampling_distrib.p)
 
 
-    init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
+    randpar_init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
 
-    subpbparams = get_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
+    subpbparams = randpar_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
-    work_channel, results_channel, params_channel, remotecalls_futures = init_workers(pb, subpbparams)
+    work_channel, results_channel, params_channel, remotecalls_futures = randpar_init_workers(pb, subpbparams)
 
     it = 0
     tinit = time()
     printlev>0 && @printf "   it   residual            objective                \n"
 
-    it = randomizedasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    it = randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
     x = copy(z)
 
     printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)
@@ -265,10 +265,8 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
         ## For all available workers
         for id_scen in tab_id_scen
-
             v = 2*x[id_scen, :] - z[id_scen, :]
-
-            put!(work_channel, SubproblemTask(id_scen, pb.scenarios[id_scen], id_scen, v))
+            put!(work_channel, ParSubproblemTask(id_scen, pb.scenarios[id_scen], id_scen, v))
         end
 
         for resp_worker in tab_id_scen
@@ -281,7 +279,6 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
         x = nonanticipatory_projection(pb, z)
 
         if mod(it, printstep) == 0
-
             objval = objective_value(pb, x)
             steplength = norm(z-z_prev)
 
@@ -299,15 +296,15 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
         it += 1
     end
 
-    ## Get final solution
-
+    ## Final print
     objval = objective_value(pb, x)
+    steplength = norm(z-z_prev)
 
     printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e\n" it steplength objval
     printlev>0 && println("Computation time: ", time() - tinit)
 
     ## Terminate all workers
-    terminate_workers(pb, work_channel, remotecalls_futures)
+    randpar_terminate_workers(pb, work_channel, remotecalls_futures)
 
     return x
 end

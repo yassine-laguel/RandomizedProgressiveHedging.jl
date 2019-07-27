@@ -1,9 +1,10 @@
 """
     ph_subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
 
-TODO
+Solve subproblem associated with scenario `id_scen`, primal point `x_scen`, dual point `u_scen`
+and regularization `μ`.
 """
-function ph_subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
+function ph_subproblem_solve(pb::Problem, id_scen::ScenarioId, u_scen, x_scen, μ, params::AbstractDict)
     n = sum(length.(pb.stage_to_dim))
 
     ## Regalurized problem
@@ -17,13 +18,11 @@ function ph_subproblem_solve(pb, id_scen, u_scen, x_scen, μ, params)
     @objective(model, Min, obj)
 
     optimize!(model)
-    # @show termination_status(model)
-    # @show primal_status(model)
-    # @show dual_status(model)
-    # @assert false
+    if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
+        @warn "Subproblem status: (scenario $id_scen) " primal_status(model) dual_status(model) termination_status(model)
+    end
 
-    y_new = JuMP.value.(y)
-    return y_new
+    return JuMP.value.(y)
 end
 
 
@@ -43,13 +42,14 @@ can also be set. Return a feasible point `x`.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
-- `hist`: if not nothing, will record:
+- `hist`: if not `nothing`, will record:
     + `:functionalvalue`: array of functional value indexed by iteration,
     + `:time`: array of time at the end of each iteration, indexed by iteration,
     + `:dist_opt`: if dict has entry `:approxsol`, array of distance between iterate and `hist[:approxsol]`, indexed by iteration.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
+- `callback`: either nothing or a function `callback(pb, x, hist)::nothing` called at each log phase. `x` is the current feasible global iterate.
 """
 function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
                                                ϵ_dual = 1e-4,
@@ -63,9 +63,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
                                                optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                callback = nothing,
                                                kwargs...)
-    printlev>0 && println("--------------------------------------------------------")
-    printlev>0 && println("--- Progressive Hedging")
-    printlev>0 && println("--------------------------------------------------------")
+    display_algopb_stats(pb, "Progressive Hedging", printlev, ϵ_primal=ϵ_primal, ϵ_dual=ϵ_dual, μ=μ, maxtime=maxtime, maxiter=maxiter)
 
     # Variables
     nstages = pb.nstages
