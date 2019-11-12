@@ -9,9 +9,10 @@ function display_algopb_stats(pb::Problem, algoname, printlev; maxiter, maxtime,
         println(" - variable dimension : ", get_scenariodim(pb))
         println("Algorithm parameters:")
 
-        @printf " - %-10s  %-6i    - %-10s  %-6i" "maxiter" maxiter "maxtime" maxtime
+        @printf " - %-12s  %-6i\n" "maxiter" maxiter
+        @printf " - %-12s  %-6i\n" "maxtime (s)" maxtime
         for (param, pval) in kwargs
-            @printf "\n - %-10s  " param
+            @printf " - %-12s  " param
             display(pval)
         end
         println("")

@@ -1,4 +1,4 @@
-isroot(n::STreeNode) = isnothing(n.father)
+isroot(n::STreeNode) = (n.father === nothing)
 isleaf(n::STreeNode) = length(n.childs) == 0
 
 function print(io::IO, tree::ScenarioTree)
@@ -96,14 +96,14 @@ function ScenarioTree(stagetoscenpart::Vector{OrderedSet{BitSet}})
                         id_father = id_prevdepthnode
                     end
                 end
-                id_father == nothing && @error "Invalid scenario inclusion at depth $cur_depth"
+                id_father === nothing && @error "Invalid scenario inclusion at depth $cur_depth"
             end
 
             ## Write current node
             vecnodes[id_nextnode] = STreeNode(id_father, childs, ur, cur_depth)
             
             ## Reference current node as child of id_father
-            if !isnothing(id_father)
+            if (id_father!==nothing)
                 push!(vecnodes[id_father].childs, id_nextnode)
             end
 

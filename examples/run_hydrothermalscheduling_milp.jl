@@ -1,9 +1,5 @@
 using Distributed
 
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-# @everywhere Pkg.status()
-
 @everywhere using RPH, Ipopt
 @everywhere using Juniper, Cbc
 using Mosek, MosekTools

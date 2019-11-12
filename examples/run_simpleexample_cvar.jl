@@ -1,9 +1,5 @@
 using Distributed
 
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-# @everywhere Pkg.status()
-
 @everywhere using JuMP, RPH
 
 include("build_simpleexample.jl")
@@ -27,7 +23,7 @@ function main()
 
 
     function callback(cvar_pb::Problem, x, hist)
-        @assert !isnothing(hist)
+        @assert hist !== nothing
 
         !haskey(hist, :cvarvalues) && (hist[:cvarvalues]=Float64[])
 

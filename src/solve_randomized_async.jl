@@ -138,11 +138,11 @@ end
 
 
 function randasync_init_hist!(hist, printstep)
-    !isnothing(hist) && (hist[:functionalvalue] = Float64[])
-    !isnothing(hist) && (hist[:time] = Float64[])
-    !isnothing(hist) && (hist[:maxdelay] = Int32[])
-    !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    !isnothing(hist) && (hist[:logstep] = printstep)
+    (hist!==nothing) && (hist[:functionalvalue] = Float64[])
+    (hist!==nothing) && (hist[:time] = Float64[])
+    (hist!==nothing) && (hist[:maxdelay] = Int32[])
+    (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
+    (hist!==nothing) && (hist[:logstep] = printstep)
     return
 end
 
@@ -216,8 +216,8 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     steplength = Inf
 
     ## Random scenario sampling
-    rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
-    if isnothing(qdistr) || qdistr == :pdistr
+    rng = MersenneTwister(seed===nothing ? 1234 : seed)
+    if (qdistr===nothing) || qdistr == :pdistr
         scen_sampling_distrib = Categorical(pb.probas)
     elseif qdistr == :unifdistr
         scen_sampling_distrib = Categorical(ones(nscenarios) / nscenarios)
@@ -277,7 +277,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         τ = max(τ, delay)
         η = c*nscenarios*qmin / (2*τ*sqrt(qmin) + 1)
 
-        if isnothing(stepsize)
+        if (stepsize === nothing)
             step = 2 * η / (nscenarios * pb.probas[id_scen]) * (y - x[x_coord, :])
         else
             step = stepsize * (y - x[x_coord, :])
@@ -298,7 +298,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         cur_taskid += 1
 
         # invariants, indicators, prints
-        !isnothing(hist) && push!(hist[:maxdelay], delay)
+        (hist!==nothing) && push!(hist[:maxdelay], delay)
 
         if mod(it, printstep) == 0
             nonanticipatory_projection!(z_feas, pb, z)
@@ -307,10 +307,10 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
             printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
 
-            !isnothing(hist) && push!(hist[:functionalvalue], objval)
-            !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
-            if !isnothing(callback)
+            (hist!==nothing) && push!(hist[:functionalvalue], objval)
+            (hist!==nothing) && push!(hist[:time], time() - tinit)
+            (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
+            if (callback!==nothing)
                 callback(pb, z_feas, hist)
             end
         end

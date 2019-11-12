@@ -98,8 +98,8 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
     steplength = Inf
 
     ## Random scenario sampling
-    rng = MersenneTwister(isnothing(seed) ? 1234 : seed)
-    if isnothing(qdistr) || qdistr == :pdistr
+    rng = MersenneTwister(seed===nothing ? 1234 : seed)
+    if (qdistr===nothing) || qdistr == :pdistr
         scen_sampling_distrib = Categorical(pb.probas)
     elseif qdistr == :unifdistr
         scen_sampling_distrib = Categorical(ones(nscenarios) / nscenarios)
@@ -110,10 +110,10 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
         scen_sampling_distrib = Categorical(qdistr)
     end
 
-    !isnothing(hist) && (hist[:functionalvalue] = Float64[])
-    !isnothing(hist) && (hist[:time] = Float64[])
-    !isnothing(hist) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    !isnothing(hist) && (hist[:logstep] = printstep)
+    (hist!==nothing) && (hist[:functionalvalue] = Float64[])
+    (hist!==nothing) && (hist[:time] = Float64[])
+    (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
+    (hist!==nothing) && (hist[:logstep] = printstep)
 
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer
@@ -147,11 +147,11 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
 
             printlev>0 && @printf "%5i   %.10e % .16e\n" it steplength objval
 
-            !isnothing(hist) && push!(hist[:functionalvalue], objval)
-            !isnothing(hist) && push!(hist[:time], time() - tinit)
-            !isnothing(hist) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+            (hist!==nothing) && push!(hist[:functionalvalue], objval)
+            (hist!==nothing) && push!(hist[:time], time() - tinit)
+            (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
 
-            if !isnothing(callback)
+            if (callback!==nothing)
                 callback(pb, x_feas, hist)
             end
 

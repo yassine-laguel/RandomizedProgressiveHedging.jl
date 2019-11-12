@@ -1,9 +1,5 @@
 using Distributed
 
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-# @everywhere Pkg.status()
-
 using RPH, Ipopt
 
 include("build_hydrothermalscheduling_extended.jl")
