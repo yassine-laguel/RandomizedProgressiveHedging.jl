@@ -17,7 +17,7 @@ GLPK, Ipopt are installed along as default solvers. Other solvers can of course 
 ## Example
 
 Many example scripts are available in the `example/` folder. A good place to start is:
-- the [doc](---)!
+- the [doc](https://yassine-laguel.github.io/RPH.jl/stable)!
 - the [`examples/tutorial.ipynb`](https://github.com/yassine-laguel/RPH.jl/blob/master/examples/tutorial.ipynb) jupyter notebook
 - the script [`examples/simple_example.jl`](https://github.com/yassine-laguel/RPH.jl/blob/master/examples/tutorial.jl)
 

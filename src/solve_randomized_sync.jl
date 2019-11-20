@@ -14,7 +14,7 @@ function randsync_subproblem_solve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
 
     # Subproblem full objective
-    obj += (1/2*μ) * sum((y[i] - xz_scen[i])^2 for i in 1:n)
+    obj += (1/(2*μ)) * sum((y[i] - xz_scen[i])^2 for i in 1:n)
     @objective(model, Min, obj)
 
     optimize!(model)

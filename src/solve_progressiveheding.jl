@@ -14,7 +14,7 @@ function ph_subproblem_solve(pb::Problem, id_scen::ScenarioId, u_scen, x_scen, �
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
 
     # Augmented lagragian subproblem full objective
-    obj += dot(u_scen, y) + (1/2*μ) * sum((y[i]-x_scen[i])^2 for i in 1:n)
+    obj += dot(u_scen, y) + (1/(2*μ)) * sum((y[i]-x_scen[i])^2 for i in 1:n)
     @objective(model, Min, obj)
 
     optimize!(model)

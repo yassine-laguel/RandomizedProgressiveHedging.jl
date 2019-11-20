@@ -30,7 +30,7 @@ function randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, par
             y, obj, ctrref = build_fs(model, subpbtask.scenario, subpbtask.id_scenario)
 
             # Subproblem full objective
-            obj += (1/2*μ) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
+            obj += (1/(2*μ)) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
 
             @objective(model, Min, obj)
 
