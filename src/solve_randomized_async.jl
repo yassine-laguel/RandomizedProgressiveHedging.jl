@@ -12,12 +12,12 @@ Solve and return the solution of the subproblem 'prox_(f_s/`μ`) (`v_scen`)' whe
 the scenario `id_scen`.
 """
 function randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, paramschan::RemoteChannel)
-    params = take!(paramschan)
-    μ = params[:μ]
-    build_fs = params[:build_fs]
+    try
+        params = take!(paramschan)
+        μ = params[:μ]
+        build_fs = params[:build_fs]
 
-    while true
-        try
+        while true
             subpbtask::AsyncSubproblemTask = take!(inwork)
 
             if subpbtask.taskid == -1  # Work finished
@@ -40,10 +40,11 @@ function randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, par
             end
 
             put!(outres, (JuMP.value.(y), subpbtask.taskid))
-        catch e
-            println("Worker error:")
-            println(e)
         end
+    catch e
+        println("Worker error:")
+        println(e)
+        return
     end
 end
 
