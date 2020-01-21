@@ -35,7 +35,7 @@ end
     B = s.ndams         # number of dams
     T = s.nstages
 
-    c_H = [1 for b in 1:B]       # dams electiricity prod costs
+    c_H = [1+1b for b in 1:B]       # dams electiricity prod costs
     c_E = 6             # externel elec buy cost
     D = 6               # demand at each time step
     W = 8               # dam water capacity
@@ -44,7 +44,7 @@ end
 
     # Convert weathertype::Int into stage to rain level
     stage_to_rainlevel = int_to_bindec(s.weathertype, s.nstages) .+1
-    
+
     qs = @variable(model, [1:T, 1:B], base_name="qs_s$id_scen")
     ys = @variable(model, [1:T, 1:B], base_name="ys_s$id_scen", Int)
     # ys = @variable(model, [1:T, 1:B], base_name="ys_s$id_scen")
@@ -58,16 +58,16 @@ end
 
     # Meet demand
     @constraint(model, [t=1:T], sum(ys[t, 1:B]) + e[t] >= D)
-   
+
     # Reservoir max capacity
     @constraint(model, qs .<= W)
 
     ## Dynamic constraints
     @constraint(model, qs[1, 1:B] .== W1 - ys[1, 1:B])
-    @constraint(model, [t=2:T], qs[t, 1:B] .== qs[t-1, 1:B] - ys[t, 1:B] .+ rain[stage_to_rainlevel[t]])    
-    
+    @constraint(model, [t=2:T], qs[t, 1:B] .== qs[t-1, 1:B] - ys[t, 1:B] .+ rain[stage_to_rainlevel[t]])
+
     # objexpr = sum(sum(  c_H[b] * ys[t, b] for b in 1:B) + c_E * e[t] for t in 1:T)
-    objexpr = sum(  c_E * e[t] for t in 1:T)
+    objexpr = sum(dot(c_H .* (1-0.1*t), ys[t, 1:B]) + c_E * e[t] for t in 1:T)
 
     Y = collect(Iterators.flatten([ union(ys[t, 1:B], qs[t, 1:B], e[t]) for t in 1:T] ))
 
@@ -101,7 +101,7 @@ function build_hydrothermalextendedmilp_problem(; nstages = 5, ndams=10, p = 1/4
         scenarios,
         build_fs_extendedmilp,
         probas,
-        nscenarios, 
+        nscenarios,
         nstages,
         dim_to_subspace,
         scenariotree
