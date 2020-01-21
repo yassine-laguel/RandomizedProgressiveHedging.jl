@@ -6,10 +6,10 @@ Note: this function has been fairly optimized. Apply changes with caution.
 """
 function nonanticipatory_projection!(x::Matrix{Float64}, pb::Problem, y::Matrix{Float64})
     @assert size(x) == size(y) "nonanticipatory_projection!(): input and output arrays should have same size"
-    
+
     nnodes = length(pb.scenariotree.vecnodes)
     vecnodes = pb.scenariotree.vecnodes
-    
+
     for node in pb.scenariotree.vecnodes
         stage_dims = pb.stage_to_dim[node.depth]
         scenset = node.scenarioset

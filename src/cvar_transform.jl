@@ -8,7 +8,7 @@ Build the problem with risk measure corresponding to `cvar`.
 function cvar_problem(pb::Problem, cvarlevel::Real)
     ## Define extended problem: change stage_to_dim
     new_dim_to_subspace = [1:2 for i in 1:pb.nstages]
-    
+
     new_dim_to_subspace[1] = 1:pb.stage_to_dim[1].stop+1
     for stageid in 2:pb.nstages
         new_dim_to_subspace[stageid] = pb.stage_to_dim[stageid].start+1:pb.stage_to_dim[stageid].stop+1
@@ -33,7 +33,7 @@ function cvar_problem(pb::Problem, cvarlevel::Real)
         pb.scenarios,
         build_cvarproblem!,
         pb.probas,
-        pb.nscenarios, 
+        pb.nscenarios,
         pb.nstages,
         new_dim_to_subspace,
         pb.scenariotree

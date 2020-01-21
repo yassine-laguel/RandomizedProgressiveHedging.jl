@@ -15,7 +15,7 @@ function ph_subproblem_solve(pb::Problem, id_scen::ScenarioId, u_scen, x_scen, �
 
     # Augmented lagragian subproblem full objective
     obj += dot(u_scen, y) + (1/(2*μ)) * sum((y[i]-x_scen[i])^2 for i in 1:n)
-    @objective(model, Min, obj)
+    @objective(model, MOI.MIN_SENSE, obj)
 
     optimize!(model)
     if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
@@ -25,6 +25,47 @@ function ph_subproblem_solve(pb::Problem, id_scen::ScenarioId, u_scen, x_scen, �
     return JuMP.value.(y)
 end
 
+
+"""
+    ph_initialization!(x, u, Y, pb, μ, subpbparams, printlev)
+
+Compute a first global feasible point by solving each scenario independently and projecting
+the global strategy obtained onto the non-anticipatory subspace.
+"""
+function ph_initialization!(x, u, y, pb, μ, subpbparams, printlev)
+    printlev>0 && print("Initialisation... ")
+
+    # Subproblem solves
+    for id_scen in 1:pb.nscenarios
+        y[id_scen, :] = ph_subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, subpbparams)
+    end
+
+    # projection on non anticipatory subspace
+    nonanticipatory_projection!(x, pb, y)
+
+    # multiplier update
+    u[:] = ((1/μ) * (y-x))[:]
+
+    printlev>0 && println("done")
+    return
+end
+
+function ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+    objval = objective_value(pb, x)
+    dot_xu = dot(pb, x, u)
+
+    printlev>0 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
+
+    (hist!==nothing) && push!(hist[:functionalvalue], objval)
+    (hist!==nothing) && push!(hist[:computingtime], computingtime)
+    (hist!==nothing) && push!(hist[:time], time() - tinit)
+    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+
+    if (callback!==nothing)
+        callback(pb, x, hist)
+    end
+    return
+end
 
 """
     x = solve_progressivehedging(pb::Problem)
@@ -38,7 +79,8 @@ can also be set. Return a feasible point `x`.
 - `ϵ_primal`: Tolerance on primal residual.
 - `ϵ_dual`: Tolerance on dual residual.
 - `μ`: Regularization parameter.
-- `maxtime`: Limit time spent in computations.
+- `maxtime`: Limit on time spent in `solve_progressivehedging`.
+- `maxcomputingtime`: Limit time spent in computations, excluding computation of initial feasible point and computations required by plottting / logging.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
@@ -55,6 +97,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
                                                ϵ_dual = 1e-4,
                                                μ = 3,
                                                maxtime = 3600,
+                                               maxcomputingtime = Inf,
                                                maxiter = 1e3,
                                                printlev = 1,
                                                printstep = 1,
@@ -63,7 +106,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
                                                optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                callback = nothing,
                                                kwargs...)
-    display_algopb_stats(pb, "Progressive Hedging", printlev, ϵ_primal=ϵ_primal, ϵ_dual=ϵ_dual, μ=μ, maxtime=maxtime, maxiter=maxiter)
+    display_algopb_stats(pb, "Progressive Hedging", printlev, ϵ_primal=ϵ_primal, ϵ_dual=ϵ_dual, μ=μ, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
     nstages = pb.nstages
@@ -73,9 +116,11 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     y = zeros(Float64, nscenarios, n)
     x = zeros(Float64, nscenarios, n)
     u = zeros(Float64, nscenarios, n)
+    u_old = zeros(Float64, nscenarios, n)
     primres = dualres = Inf
 
     (hist!==nothing) && (hist[:functionalvalue] = Float64[])
+    (hist!==nothing) && (hist[:computingtime] = Float64[])
     (hist!==nothing) && (hist[:time] = Float64[])
     (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     (hist!==nothing) && (hist[:logstep] = printstep*nscenarios)
@@ -84,11 +129,24 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     subpbparams[:optimizer] = optimizer
     subpbparams[:optimizer_params] = optimizer_params
 
-    it = 0
+    # initialisation, for fair comparison with randomized methods.
     tinit = time()
+    ph_initialization!(x, u, y, pb, μ, subpbparams, printlev)
+    objval, dot_xu, primres, dualres = objective_value(pb, x), dot(pb, x, u), norm(pb, x-y), (1/μ) * norm(pb, u)
+
+    it = 0
+    computingtime = 0.0
+
     printlev>0 && @printf " it   primal res        dual res            dot(x,u)   objective\n"
-    while !(primres < ϵ_primal && dualres < ϵ_dual) && it < maxiter && time()-tinit < maxtime
-        u_old = copy(u)
+    ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+
+    while (!(primres < ϵ_primal && dualres < ϵ_dual) && it < maxiter
+                                                    && time() - tinit < maxtime
+                                                    && computingtime < maxcomputingtime)
+        it += 1
+        it_startcomputingtime = time()
+
+        copy!(u_old, u)
 
         # Subproblem solves
         for id_scen in 1:nscenarios
@@ -102,33 +160,24 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
         u += (1/μ) * (y-x)
 
 
-        # invariants, indicators
         primres = norm(pb, x-y)
         dualres = (1/μ) * norm(pb, u - u_old)
+
+        computingtime += time() - it_startcomputingtime
+
+        # Print and logs
         if mod(it, printstep) == 0
-            objval = objective_value(pb, x)
-            dot_xu = dot(pb, x, u)
-
-            printlev>0 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
-
-            (hist!==nothing) && push!(hist[:functionalvalue], objval)
-            (hist!==nothing) && push!(hist[:time], time() - tinit)
-            (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
-
-            if (callback!==nothing)
-                callback(pb, x, hist)
-            end
+            ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
         end
-
-        it += 1
     end
 
     ## Final print
-    objval = objective_value(pb, x)
-    dot_xu = dot(pb, x, u)
+    if mod(it, printstep) != 0
+        ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+    end
 
-    printlev>0 && mod(it, printstep) != 1 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
-    printlev>0 && println("Computation time: ", time() - tinit)
+    printlev>0 && println("Computation time (s): ", computingtime)
+    printlev>0 && println("Total time       (s): ", time() - tinit)
 
     return x
 end

@@ -32,7 +32,7 @@ function randpar_remote_func(inwork::RemoteChannel, outres::RemoteChannel, param
             # Subproblem full objective
             obj += (1/(2*μ)) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
 
-            @objective(model, Min, obj)
+            @objective(model, MOI.MIN_SENSE, obj)
 
             optimize!(model)
             if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
@@ -101,13 +101,13 @@ function randpar_terminate_workers(pb, work_channel, remotecalls_futures)
 end
 
 """
-    randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    randpar_initialization!(z, pb, μ, subpbparams, printlev, work_channel, results_channel)
 
-Compute a first global feasible point by solving each scenario independently and projecting 
+Compute a first global feasible point by solving each scenario independently and projecting
 the global strategy obtained onto the non-anticipatory subspace. Independent solves are distributed
 on available workers.
 """
-function randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+function randpar_initialization!(z, pb, μ, subpbparams, printlev, work_channel, results_channel)
     printlev>0 && print("Initialisation... ")
     xz_scen = zeros(get_scenariodim(pb))
     cur_scen = 1
@@ -134,12 +134,13 @@ function randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_chan
     nonanticipatory_projection!(z, pb, z)
 
     printlev>0 && println("done")
-    return it
+    return
 end
 
 
 function randpar_init_hist!(hist, printstep)
     (hist!==nothing) && (hist[:functionalvalue] = Float64[])
+    (hist!==nothing) && (hist[:computingtime] = Float64[])
     (hist!==nothing) && (hist[:time] = Float64[])
     (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     (hist!==nothing) && (hist[:logstep] = printstep)
@@ -153,6 +154,23 @@ function randpar_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     subpbparams[:μ] = μ
     subpbparams[:build_fs] = pb.build_subpb
     return subpbparams
+end
+
+function randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+    objval = objective_value(pb, x)
+    steplength = norm(z-z_prev)
+
+    printlev>0 && @printf "%5i   %.10e   % .16e \n" it steplength objval
+
+    (hist!==nothing) && push!(hist[:functionalvalue], objval)
+    (hist!==nothing) && push!(hist[:computingtime], computingtime)
+    (hist!==nothing) && push!(hist[:time], time() - tinit)
+    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+
+    if (callback!==nothing)
+        callback(pb, x, hist)
+    end
+    return
 end
 
 """
@@ -169,7 +187,8 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:pdistr`: samples according to objective scenario probability distribution,
     + `:unifdistr`: samples according to uniform distribution,
     + otherwise, an `Array` specifying directly the probablility distribution.
-- `maxtime`: Limit time spent in computations.
+- `maxtime`: Limit on time spent in `solve_progressivehedging`.
+- `maxcomputingtime`: Limit time spent in computations, excluding computation of initial feasible point and computations required by plottting / logging.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
@@ -183,13 +202,14 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
-- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each 
+- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each
 log phase. `x` is the current feasible global iterate.
 """
 function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
                                                 c = 0.9,
                                                 qdistr = :pdistr,
                                                 maxtime = 3600,
+                                                maxcomputingtime = Inf,
                                                 maxiter = 1e5,
                                                 printlev = 1,
                                                 printstep = 1,
@@ -199,7 +219,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
                                                 optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                 callback=nothing,
                                                 kwargs...) where T<:AbstractScenario
-    display_algopb_stats(pb, "Randomized Progressive Hedging - parallel", printlev, μ=μ, c=c, qdistr=qdistr, maxtime=maxtime, maxiter=maxiter)
+    display_algopb_stats(pb, "Randomized Progressive Hedging - parallel", printlev, μ=μ, c=c, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
     nworkers = length(workers())
@@ -207,7 +227,7 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
     nscenarios = pb.nscenarios
     n = get_scenariodim(pb)
 
-    x = zeros(Float64, nworkers, n)
+    x = zeros(Float64, nscenarios, n)
     z = zeros(Float64, nscenarios, n)
     z_prev = zeros(Float64, nscenarios, n)
     step = zeros(Float64, n)
@@ -234,25 +254,27 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
     ## Workers Initialization
     printlev>0 && println("Available workers: ", nworkers)
-    work_channel, results_channel, params_channel, remotecalls_futures = randpar_init_workers(pb, subpbparams)
-
-    it = 0
-    tinit = time()
-    printlev>0 && @printf "   it   residual            objective                \n"
-
-    it = randpar_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
-    x = copy(z)
-
-    printlev>0 && @printf "%5i   %.10e   % .16e    \n" it 0.0 objective_value(pb, z)
-
-
     minworkscen = min(nworkers, nscenarios)
     minworkscen < nworkers && @warn "solve_randomized_par(): less scenarios than workers ($nscenarios < $nworkers). Only $nscenarios workers will be put to use."
 
+    work_channel, results_channel, params_channel, remotecalls_futures = randpar_init_workers(pb, subpbparams)
 
-    while it < maxiter && time()-tinit < maxtime
+    # Algorithm initialisation
+    tinit = time()
+    randpar_initialization!(z, pb, μ, subpbparams, printlev, work_channel, results_channel)
+    copy!(x, z)
 
-        z_prev = copy(z)
+    it = 0
+    computingtime = 0.0
+
+    printlev>0 && @printf "   it   residual            objective                \n"
+    randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+
+    while it < maxiter && time()-tinit < maxtime && computingtime < maxcomputingtime
+        it += 1
+        it_startcomputingtime = time()
+
+        copy!(z_prev, z)
 
         ## Draw a scenario, build v, send task
         tab_id_scen = zeros(Int64, minworkscen)
@@ -277,32 +299,24 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
             z[id_scen, :] += (y - x[id_scen, :])
         end
 
-        x = nonanticipatory_projection(pb, z)
+        nonanticipatory_projection!(x, pb, z)
 
+
+        computingtime += time() - it_startcomputingtime
+
+        # Print and logs
         if mod(it, printstep) == 0
-            objval = objective_value(pb, x)
-            steplength = norm(z-z_prev)
-
-            printlev>0 && @printf "%5i   %.10e   % .16e \n" it steplength objval
-
-            (hist!==nothing) && push!(hist[:functionalvalue], objval)
-            (hist!==nothing) && push!(hist[:time], time() - tinit)
-            (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
-
-            if (callback!==nothing)
-                callback(pb, x, hist)
-            end
+            randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
         end
-
-        it += 1
     end
 
     ## Final print
-    objval = objective_value(pb, x)
-    steplength = norm(z-z_prev)
+    if mod(it, printstep) != 0
+        randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+    end
 
-    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e\n" it steplength objval
-    printlev>0 && println("Computation time: ", time() - tinit)
+    printlev>0 && println("Computation time (s): ", computingtime)
+    printlev>0 && println("Total time       (s): ", time() - tinit)
 
     ## Terminate all workers
     randpar_terminate_workers(pb, work_channel, remotecalls_futures)

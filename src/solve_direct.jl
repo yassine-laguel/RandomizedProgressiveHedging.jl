@@ -32,7 +32,7 @@ function solve_direct(pb::Problem; optimizer = GLPK.Optimizer,
     end
 
     # Layout global objective
-    @objective(model, Min, sum(proba_s * scen_to_obj[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
+    @objective(model, MOI.MIN_SENSE, sum(proba_s * scen_to_obj[id_s] for (id_s, proba_s) in enumerate(pb.probas)))
 
     ## Non anticipatory constraints
     printlev>0 && println("Laying out nonanticipatory constraints...")

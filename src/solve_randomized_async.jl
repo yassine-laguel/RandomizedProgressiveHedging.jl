@@ -32,7 +32,7 @@ function randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, par
             # Subproblem full objective
             obj += (1/(2*μ)) * sum((y[i] - subpbtask.v_scen[i])^2 for i in 1:length(y))
 
-            @objective(model, Min, obj)
+            @objective(model, MOI.MIN_SENSE, obj)
 
             optimize!(model)
             if (primal_status(model) !== MOI.FEASIBLE_POINT) || (dual_status(model) !== MOI.FEASIBLE_POINT)
@@ -101,13 +101,13 @@ function randasync_terminate_workers(pb, work_channel, remotecalls_futures)
 end
 
 """
-    randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+    randasync_initialization!(z, pb, μ, subpbparams, printlev, work_channel, results_channel)
 
-Compute a first global feasible point by solving each scenario independently and projecting 
+Compute a first global feasible point by solving each scenario independently and projecting
 the global strategy obtained onto the non-anticipatory subspace. Independent solves are distributed
 on available workers.
 """
-function randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
+function randasync_initialization!(z, pb, μ, subpbparams, printlev, work_channel, results_channel)
     printlev>0 && print("Initialisation... ")
     xz_scen = zeros(get_scenariodim(pb))
     cur_scen = 1
@@ -134,12 +134,13 @@ function randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_ch
     nonanticipatory_projection!(z, pb, z)
 
     printlev>0 && println("done")
-    return it
+    return
 end
 
 
 function randasync_init_hist!(hist, printstep)
     (hist!==nothing) && (hist[:functionalvalue] = Float64[])
+    (hist!==nothing) && (hist[:computingtime] = Float64[])
     (hist!==nothing) && (hist[:time] = Float64[])
     (hist!==nothing) && (hist[:maxdelay] = Int32[])
     (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
@@ -154,6 +155,23 @@ function randasync_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     subpbparams[:μ] = μ
     subpbparams[:build_fs] = pb.build_subpb
     return subpbparams
+end
+
+function randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
+    objval = objective_value(pb, z_feas)
+    steplength = norm(step)
+
+    printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
+
+    (hist!==nothing) && push!(hist[:functionalvalue], objval)
+    (hist!==nothing) && push!(hist[:computingtime], computingtime)
+    (hist!==nothing) && push!(hist[:time], time() - tinit)
+    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(z_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
+
+    if (callback!==nothing)
+        callback(pb, z_feas, hist)
+    end
+    return
 end
 
 """
@@ -171,7 +189,8 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:pdistr`: samples according to objective scenario probability distribution,
     + `:unifdistr`: samples according to uniform distribution,
     + otherwise, an `Array` specifying directly the probablility distribution.
-- `maxtime`: Limit time spent in computations.
+- `maxtime`: Limit on time spent in `solve_progressivehedging`.
+- `maxcomputingtime`: Limit time spent in computations, excluding computation of initial feasible point and computations required by plottting / logging.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
 - `printstep`: number of iterations skipped between each print and logging.
@@ -185,7 +204,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
-- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each 
+- `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each
 log phase. `x` is the current feasible global iterate.
 """
 function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
@@ -193,6 +212,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 stepsize::Union{Nothing, Float64} = nothing,
                                                 qdistr = :pdistr,
                                                 maxtime = 3600,
+                                                maxcomputingtime = Inf,
                                                 maxiter = 1e5,
                                                 printlev = 1,
                                                 printstep = 1,
@@ -202,7 +222,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
                                                 optimizer_params = Dict{Symbol, Any}(:print_level=>0),
                                                 callback=nothing,
                                                 kwargs...) where T<:AbstractScenario
-    display_algopb_stats(pb, "Randomized Progressive Hedging - asynchronous", printlev, μ=μ, c=c, stepsize=stepsize, qdistr=qdistr, maxtime=maxtime, maxiter=maxiter)
+    display_algopb_stats(pb, "Randomized Progressive Hedging - asynchronous", printlev, μ=μ, c=c, stepsize=stepsize, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
     nworkers = length(workers())
@@ -246,13 +266,13 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     taskid_to_launchit = Dict{Int, Int}()
     cur_taskid = 0
 
-    it = 0
+    # Algorithm initialisation
     tinit = time()
-    printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
+    randasync_initialization!(z, pb, μ, subpbparams, printlev, work_channel, results_channel)
+    copy!(z_feas, z)
 
-    it = randasync_initialization!(z, pb, μ, subpbparams, printlev, it, work_channel, results_channel)
-
-    printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it 0.0 objective_value(pb, z) τ 0
+    it = 0
+    computingtime = 0.0
 
     ## Feeding every worker with one task
     for (x_coord, w_id) in enumerate(workers())
@@ -266,7 +286,15 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         cur_taskid += 1
     end
 
-    while it < maxiter && time()-tinit < maxtime
+    objval = objective_value(pb, z)
+    init_objval = objval
+
+    printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
+    randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
+
+    while it < maxiter && time()-tinit < maxtime && computingtime < maxcomputingtime && objval < 3*init_objval
+        it += 1
+        it_startcomputingtime = time()
 
         ## Get a completed task
         y, taskid = take!(results_channel)
@@ -298,33 +326,25 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         taskid_to_launchit[cur_taskid] = it
         cur_taskid += 1
 
-        # invariants, indicators, prints
-        (hist!==nothing) && push!(hist[:maxdelay], delay)
 
+        computingtime += time() - it_startcomputingtime
+
+        # Print and logs
+        (hist!==nothing) && push!(hist[:maxdelay], delay)
         if mod(it, printstep) == 0
             nonanticipatory_projection!(z_feas, pb, z)
-            objval = objective_value(pb, z_feas)
-            steplength = norm(step)
-
-            printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
-
-            (hist!==nothing) && push!(hist[:functionalvalue], objval)
-            (hist!==nothing) && push!(hist[:time], time() - tinit)
-            (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
-            if (callback!==nothing)
-                callback(pb, z_feas, hist)
-            end
+            randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
         end
 
         it += 1
     end
 
     ## Get final solution
-    z_feas = nonanticipatory_projection(pb, z)
-    objval = objective_value(pb, z_feas)
+    nonanticipatory_projection!(z_feas, pb, z)
+    randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
 
-    printlev>0 && mod(it, printstep) != 1 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
-    printlev>0 && println("Computation time: ", time() - tinit)
+    printlev>0 && println("Computation time (s): ", computingtime)
+    printlev>0 && println("Total time       (s): ", time() - tinit)
 
     ## Terminate all workers
     randasync_terminate_workers(pb, work_channel, remotecalls_futures)
