@@ -51,11 +51,11 @@ function objective_value(pb, x, id_scen)
 
     ## Layout JuMP problem with objective
     model = Model(with_optimizer(optimizer; optimizer_params...))
-        
+
     y, obj, ctrrefs = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
-        
-    @objective(model, Min, obj)
-        
+
+    @objective(model, MOI.MIN_SENSE, obj)
+
     ## Remove all constraints (including on variables)
     model.nlp_data = nothing
     for (ftype, settype) in list_of_constraint_types(model)
@@ -83,7 +83,7 @@ Compute the weighted scalar product between strategies `x` and `y`.
 function dot(pb::Problem, x::Matrix{Float64}, y::Matrix{Float64})
     @assert size(x) == size(y) "dot(): input matrices should have same size."
     @assert length(pb.probas) == size(x, 1) "dot(): incompatible scenario probability and matrix x"
-    
+
     res = 0
     for i in 1:size(x, 1)
         res += pb.probas[i] * dot(x[i, :], y[i, :])

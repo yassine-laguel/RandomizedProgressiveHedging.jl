@@ -1,7 +1,7 @@
 """
     x = solve_direct(pb::Problem; optimizer = GLPK.Optimizer, printlev=1)
 
-Build the progressive hedging problem by explicitly laying out non-anticipatory 
+Build the progressive hedging problem by explicitly laying out non-anticipatory
 constraints, and solve globally.
 
 ## Keyword arguments:
@@ -9,7 +9,7 @@ constraints, and solve globally.
 - `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
 - `printlev`: if 0, mutes output from the function (not solver). Default value is 1.
 """
-function solve_direct(pb::Problem; optimizer = GLPK.Optimizer, 
+function solve_direct(pb::Problem; optimizer = GLPK.Optimizer,
                                    optimizer_params = Dict{Symbol, Any}(),
                                    printlev = 1)
     printlev>0 && println("--------------------------------------------------------")

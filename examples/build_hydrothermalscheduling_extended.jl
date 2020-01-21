@@ -54,11 +54,11 @@ end
     @constraint(model, qs .>= 0)
     @constraint(model, ys .>= 0)
     @constraint(model, e .>= 0)
-    
+
 
     # Meet demand
     @constraint(model, [t=1:T], sum(ys[t, 1:B]) + e[t] >= D)
-    
+
     # Reservoir max capacity
     @constraint(model, qs .<= W)
 
@@ -85,7 +85,7 @@ function build_hydrothermalextended_problem(; nstages = 5, ndams=10, p = 1/4)
     end
 
     scenariotree = ScenarioTree(; depth=nstages, nbranching=2)
-    
+
     ## Building probas: p is proba of rain
     probas = zeros(nscenarios)
     for s_id in 0:nscenarios-1
@@ -101,7 +101,7 @@ function build_hydrothermalextended_problem(; nstages = 5, ndams=10, p = 1/4)
         scenarios,
         build_fs_extendedlp,
         probas,
-        nscenarios, 
+        nscenarios,
         nstages,
         dim_to_subspace,
         scenariotree

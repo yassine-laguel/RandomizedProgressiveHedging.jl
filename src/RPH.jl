@@ -3,7 +3,7 @@ module RPH
 using DataStructures
 using LinearAlgebra
 using Distributed
-using JuMP, Ipopt, GLPK
+using JuMP, MathOptInterface, Ipopt, GLPK
 
 using Random, Distributions
 using Printf
@@ -11,6 +11,8 @@ using Printf
 import Base.print
 import JuMP.objective_value
 import LinearAlgebra: dot, norm
+
+const MOI = MathOptInterface
 
 ###############################################################################
 ## Scenario abstract type and functions definition
@@ -35,7 +37,7 @@ abstract type AbstractScenario end
 """
     build_fs!(model::JuMP.Model, s::S, id_scen::ScenarioId) where S<:AbstractScenario
 
-Define variables, build the objective function, build and attach constraints relative 
+Define variables, build the objective function, build and attach constraints relative
 to the scenario `s`, of identifier `id_scen`, into the given JuMP `model`.
 
 Return value: a tuple of
@@ -58,7 +60,7 @@ function build_fs!(model::JuMP.Model, s::MyScenario, id_scen::ScenarioId)
 
     # objective constraints, enforcing m=maximum(Y)
     max_ctrs = @constraint(model, [i in 1:stages], m .>= Y[i])
-    
+
     objexpr = sum( (Y[i]-s.value[i])^2 for i in 1:nstages) + m
 
     return Y, objexpr, max_ctrs
@@ -77,7 +79,7 @@ const STreeNodeId = Int32
 """
     STreeNode
 
-Node object of the `ScenarioTree`. Reference its `father` node id and its `childs` ids, 
+Node object of the `ScenarioTree`. Reference its `father` node id and its `childs` ids,
 along with the set of scenarios equivalent up to the `depth` (or stage) of the node.
 """
 mutable struct STreeNode

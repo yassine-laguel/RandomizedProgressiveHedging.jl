@@ -4,8 +4,8 @@ using Ipopt, LinearAlgebra, Distributed
 
 @testset "Simple example" begin
     pb = build_simpleexample()
-    xsol = Float64[1.75  1.0  1.0   
-                   1.75  2.5  2.0   
+    xsol = Float64[1.75  1.0  1.0
+                   1.75  2.5  2.0
                    1.75  2.5  3.0]
 
     @testset "Direct resolution" begin
@@ -19,10 +19,10 @@ using Ipopt, LinearAlgebra, Distributed
 
         @test isapprox(y_PH, xsol, atol=1e-3)
     end
-    
+
     @testset "Solve synchronous" begin
         y_sync = solve_randomized_sync(pb, maxtime=3, printlev=0)
-        
+
         @test isapprox(y_sync, xsol, atol=1e-3)
     end
 
@@ -31,7 +31,7 @@ using Ipopt, LinearAlgebra, Distributed
         if workers() !== Vector([1])
             y_async = solve_randomized_par(pb, maxtime=0.1, printlev=1)
             y_async = solve_randomized_par(pb, maxtime=3, printlev=0)
-            
+
             @test isapprox(y_async, xsol, atol=1e-3)
         end
     end
@@ -41,7 +41,7 @@ using Ipopt, LinearAlgebra, Distributed
         if workers() !== Vector([1])
             y_async = solve_randomized_async(pb, maxtime=0.1, printlev=1)
             y_async = solve_randomized_async(pb, maxtime=3, printlev=0)
-            
+
             @test isapprox(y_async, xsol, atol=1e-3)
         end
     end
