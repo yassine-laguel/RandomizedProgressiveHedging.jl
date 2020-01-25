@@ -1,7 +1,5 @@
 using Distributed
-
-@everywhere using RPH, Ipopt
-@everywhere using Juniper, Cbc
+@everywhere using RPH, Ipopt, Juniper, Cbc
 using Mosek, MosekTools
 
 include("build_hydrothermalscheduling_milp.jl")
@@ -11,23 +9,23 @@ function main()
 
     println("Full problem is:")
     println(pb)
-    
+
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
     optimizer = Mosek.Optimizer
     optimizer_params = Dict{Symbol, Any}()
-    
+
     y_direct = solve_direct(pb, optimizer=optimizer, optimizer_params=optimizer_params)
     # println("\nDirect solve output is:")
     # display(y_direct)
     # println("")
-    
+
     # #########################################################
     # ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
     # y_PH = solve_progressivehedging(pb, maxtime=20, ϵ_primal=1e-8, ϵ_dual=1e-8, printstep=1, optimizer=optimizer, optimizer_params=optimizer_params)
     # println("\nProgressive hedging solve output is:")
     # display(y_PH);
-    
+
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
     optimizer = Juniper.Optimizer
@@ -37,7 +35,7 @@ function main()
     optimizer_params[:mip_solver] = with_optimizer(Cbc.Optimizer; logLevel=0)
     # optimizer_params[:log_levels] = []
     # optimizer_params[:log_levels] = [:Info, :Table]
-    
+
     y_sync = solve_randomized_sync(pb, maxtime=5, printstep=1, optimizer=optimizer, optimizer_params=optimizer_params)
     println("\nSynchronous solve output is:")
     display(y_sync);

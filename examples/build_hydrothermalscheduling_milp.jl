@@ -1,8 +1,7 @@
 ## Hydrothermal scheduling example, see [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf), l. cambier
 using Distributed
-@everywhere using JuMP, RPH, LinearAlgebra
+using JuMP, RPH, LinearAlgebra
 
-using DataStructures, LinearAlgebra, GLPK
 
 """
 int_to_bindec(s::Int, decomplength::Int)

@@ -1,5 +1,5 @@
 using Distributed
-using DataStructures, LinearAlgebra, GLPK
+using DataStructures, LinearAlgebra
 using RPH, JuMP
 
 @everywhere struct SimpleExScenario <: RPH.AbstractScenario
@@ -13,7 +13,7 @@ end
     y = @variable(model, [1:n], base_name="y_s$id_scen")
     objexpr = sum((y[i] - s.trajcenter[i])^2 for i in 1:n)
     @constraint(model, y .<= s.constraintbound)
-    
+
     return y, objexpr, []
 end
 

@@ -3,14 +3,14 @@ using Distributed
 @everywhere using JuMP, RPH
 
 include("build_simpleexample.jl")
-using RPH, Ipopt
+using Ipopt
 
 function main()
     pb = build_simpleexample()
 
     hist=OrderedDict{Symbol, Any}(
-        :approxsol =>   [0.468975  1.72212  1.0      1.0    
-                         0.468975  1.72212  2.62547  2.0    
+        :approxsol =>   [0.468975  1.72212  1.0      1.0
+                         0.468975  1.72212  2.62547  2.0
                          0.468975  1.72212  2.62547  3.0]
     )
 
@@ -18,7 +18,6 @@ function main()
     println(pb)
 
     cvar_lev = 0.8
-
     pbcvar = cvar_problem(pb, cvar_lev)
 
 
@@ -42,7 +41,7 @@ function main()
         push!(hist[:cvarvalues], eta_opt)
         @show(eta_opt)
     end
-    
+
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
     y_direct = solve_direct(pbcvar, optimizer = Ipopt.Optimizer, printlev=0)
@@ -61,21 +60,21 @@ function main()
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
     hist = OrderedDict{Symbol, Any}()
-    y_synch = solve_randomized_sync(pbcvar, maxiter=600, maxtime=40, printstep=100, hist=hist, callback=callback)
+    y_sync = solve_randomized_sync(pbcvar, maxiter=600, maxtime=40, printstep=100, hist=hist, callback=callback)
     println("\nSynchronous solve output is:")
-    display(y_synch)
-    
+    display(y_sync)
+
     # #########################################################
     # ## Problem solve: asynchronous (parallelized) version of PH
     hist = OrderedDict{Symbol, Any}()
-    y_asynch = solve_randomized_async(pbcvar, maxiter=1e5, maxtime=20, printstep=100, hist=hist, callback=callback)
+    y_async = solve_randomized_async(pbcvar, maxiter=1e5, maxtime=20, printstep=100, hist=hist, callback=callback)
     println("Asynchronous solve output is:")
-    display(y_asynch)
+    display(y_async)
 
     @show norm(y_direct - y_PH)
-    @show norm(y_direct - y_synch)
-    @show norm(y_direct - y_asynch)
-    
+    @show norm(y_direct - y_sync)
+    @show norm(y_direct - y_async)
+
     return
 end
 

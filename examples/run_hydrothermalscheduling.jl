@@ -1,5 +1,4 @@
 using Distributed
-
 using RPH, Ipopt
 
 include("build_hydrothermalscheduling_extended.jl")
@@ -24,16 +23,16 @@ function main()
     y_PH = solve_progressivehedging(pb, maxtime=20, ϵ_primal=1e-4, printstep=1)
     # println("\nSequential solve output is:")
     # display(y_PH);
-    
+
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
     y_sync = solve_randomized_sync(pb, maxtime=3, printstep=10)
     # println("\nSynchronous solve output is:")
     # display(y_sync);
-    
+
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_sync = solve_randomized_par(pb, maxtime=3, printstep=10)
+    y_par = solve_randomized_par(pb, maxtime=3, printstep=10)
     # println("\nSynchronous solve output is:")
     # display(y_sync);
 
@@ -44,7 +43,7 @@ function main()
     # display(y_async);
 
     @show norm(y_sync - y_PH)
-    @show norm(y_sync - y_sync)
+    @show norm(y_sync - y_par)
     @show norm(y_sync - y_async)
 
     return
