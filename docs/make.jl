@@ -4,6 +4,8 @@
 
 using Documenter, RandomizedProgressiveHedging
 
+const RPH = RandomizedProgressiveHedging
+
 makedocs(
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true"      # Solve url problem on laptop

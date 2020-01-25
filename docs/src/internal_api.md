@@ -8,6 +8,7 @@ RPH.STreeNode
 ## Progressive hedging
 ```@docs
 RPH.ph_subproblem_solve
+RPH.ph_initialization!
 ```
 
 ## Synchronous

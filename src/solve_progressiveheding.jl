@@ -27,7 +27,7 @@ end
 
 
 """
-    ph_initialization!(x, u, Y, pb, μ, subpbparams, printlev)
+    ph_initialization!(x, u, y, pb, μ, subpbparams, printlev)
 
 Compute a first global feasible point by solving each scenario independently and projecting
 the global strategy obtained onto the non-anticipatory subspace.
