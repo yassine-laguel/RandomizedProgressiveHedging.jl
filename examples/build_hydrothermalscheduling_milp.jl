@@ -1,7 +1,7 @@
 ## Hydrothermal scheduling example, see [FAST](https://web.stanford.edu/~lcambier/papers/poster_xpo16.pdf), l. cambier
 using Distributed
-using JuMP, RPH, LinearAlgebra
-
+using JuMP, RandomizedProgressiveHedging, LinearAlgebra
+@everywhere const RPH = RandomizedProgressiveHedging
 
 """
 int_to_bindec(s::Int, decomplength::Int)

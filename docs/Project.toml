@@ -1,6 +1,5 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-RPH = "9d6c422e-8155-11e9-28dd-5d3b5357240e"
 
 [compat]
-Documenter = "~0.22"
+Documenter = "0.24"

@@ -1,10 +1,10 @@
-# RPH.jl
+# RandomizedProgressiveHedging.jl
 
 *Randomized Progressive Hedging.*
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://yassine-laguel.github.io/RandomizedProgressiveHedging.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://yassine-laguel.github.io/RandomizedProgressiveHedging.jl/dev) | [![](https://api.travis-ci.com/yassine-laguel/RPH.jl.svg?token=aVdshbY2sAXsS8EzvkVr&branch=master)](https://travis-ci.com/yassine-laguel/RandomizedProgressiveHedging.jl) |
+| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://yassine-laguel.github.io/RandomizedProgressiveHedging.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://yassine-laguel.github.io/RandomizedProgressiveHedging.jl/dev) | [![](https://api.travis-ci.com/yassine-laguel/RandomizedProgressiveHedging.jl.svg?token=aVdshbY2sAXsS8EzvkVr&branch=master)](https://travis-ci.com/yassine-laguel/RandomizedProgressiveHedging.jl) |
 
 ## Installation
 

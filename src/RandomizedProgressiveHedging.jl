@@ -1,4 +1,4 @@
-module RPH
+module RandomizedProgressiveHedging
 
 using DataStructures
 using LinearAlgebra

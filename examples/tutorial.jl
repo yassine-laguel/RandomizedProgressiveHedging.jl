@@ -1,6 +1,6 @@
 using Distributed
-using RPH, Ipopt
-@everywhere using JuMP, RPH
+@everywhere using JuMP, RandomizedProgressiveHedging
+using Ipopt
 
 using DataStructures, LinearAlgebra, GLPK
 

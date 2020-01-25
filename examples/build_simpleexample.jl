@@ -1,6 +1,7 @@
 using Distributed
 using DataStructures, LinearAlgebra
-using RPH, JuMP
+using RandomizedProgressiveHedging, JuMP
+@everywhere const RPH = RandomizedProgressiveHedging
 
 @everywhere struct SimpleExScenario <: RPH.AbstractScenario
     trajcenter::Vector{Float64}

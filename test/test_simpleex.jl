@@ -32,7 +32,7 @@ using Ipopt, LinearAlgebra, Distributed
             y_async = solve_randomized_par(pb, maxtime=0.1, printlev=1)
             y_async = solve_randomized_par(pb, maxtime=3, printlev=0)
 
-            @test isapprox(y_async, xsol, atol=1e-3)
+            @test isapprox(y_async, xsol, atol=1e-2)
         end
     end
 
@@ -42,7 +42,7 @@ using Ipopt, LinearAlgebra, Distributed
             y_async = solve_randomized_async(pb, maxtime=0.1, printlev=1)
             y_async = solve_randomized_async(pb, maxtime=3, printlev=0)
 
-            @test isapprox(y_async, xsol, atol=1e-3)
+            @test isapprox(y_async, xsol, atol=1e-2)
         end
     end
 end

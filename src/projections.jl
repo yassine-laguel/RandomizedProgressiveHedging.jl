@@ -55,7 +55,7 @@ function get_averagedtraj!(averaged_traj::AbstractVector, pb::Problem, z::Matrix
 
     scentree = pb.scenariotree
     stage = 1
-    id_curnode = RPH.STreeNodeId(scentree.idrootnode)
+    id_curnode = STreeNodeId(scentree.idrootnode)
 
     while stage <= scentree.depth
         ## Get scenarios, dimension for current stage
@@ -78,7 +78,7 @@ function get_averagedtraj!(averaged_traj::AbstractVector, pb::Problem, z::Matrix
 
         ## find node of following stage
         stage += 1
-        id_nextnode::RPH.STreeNodeId, hasfound_nextnode = 0, false
+        id_nextnode::STreeNodeId, hasfound_nextnode = 0, false
         for id_child in scentree.vecnodes[id_curnode].childs
             if id_scen in scentree.vecnodes[id_child].scenarioset
                 id_nextnode = id_child

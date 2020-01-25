@@ -2,13 +2,13 @@
 # Pkg.activate(".")
 
 
-using Documenter, RPH
+using Documenter, RandomizedProgressiveHedging
 
 makedocs(
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true"      # Solve url problem on laptop
     ),
-    sitename="RPH",
+    sitename="RandomizedProgressiveHedging",
     pages = [
         "Home" => "index.md",
         "Tutorial" => "quickstart.md",
@@ -17,9 +17,9 @@ makedocs(
             "Internal" => "internal_api.md",
         ],
     ],
-    modules = [RPH]
+    modules = [RandomizedProgressiveHedging]
 )
 
 deploydocs(
-    repo = "github.com/yassine-laguel/RPH.jl.git",
+    repo = "github.com/yassine-laguel/RandomizedProgressiveHedging.jl.git",
 )

@@ -14,7 +14,7 @@ function cvar_problem(pb::Problem, cvarlevel::Real)
         new_dim_to_subspace[stageid] = pb.stage_to_dim[stageid].start+1:pb.stage_to_dim[stageid].stop+1
     end
 
-    function build_cvarproblem!(model::JuMP.Model, s::T, id_scen::RPH.ScenarioId) where T<:AbstractScenario
+    function build_cvarproblem!(model::JuMP.Model, s::T, id_scen::ScenarioId) where T<:AbstractScenario
         y, objexpr, ctrref = pb.build_subpb(model, s, id_scen)
 
         η = @variable(model)

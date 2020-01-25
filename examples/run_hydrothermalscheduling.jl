@@ -1,5 +1,5 @@
 using Distributed
-using RPH, Ipopt
+using RandomizedProgressiveHedging, Ipopt
 
 include("build_hydrothermalscheduling_extended.jl")
 

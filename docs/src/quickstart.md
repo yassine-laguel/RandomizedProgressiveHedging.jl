@@ -1,16 +1,16 @@
 # Quick start guide
 
-This section aims provides an explanation of how to build and solve a problem using RPH.jl by solving a toy problem. The equivalent script and ijulia notebook can be found in the `example` folder.
+This section aims provides an explanation of how to build and solve a problem using RandomizedProgressiveHedging.jl by solving a toy problem. The equivalent script and ijulia notebook can be found in the `example` folder.
 
 ## Installation
-RPH.jl is a pure julia package. It can be installed from julia by using the built-in package manager:
+RandomizedProgressiveHedging.jl is a pure julia package. It can be installed from julia by using the built-in package manager:
 ```julia
 using Pkg
-Pkg.add("https://github.com/yassine-laguel/RPH.jl")
+Pkg.add("https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl")
 ```
 
 ## Getting solvers
-RPH depends on other solvers to optimize the subproblems. All solvers interfaced with JuMP, the julia mathematical programming language, can be used in RPH, a list of which can be found at [JuMP's documentation](http://www.juliaopt.org/JuMP.jl/v0.19.0/installation/#Getting-Solvers-1).
+RandomizedProgressiveHedging depends on other solvers to optimize the subproblems. All solvers interfaced with JuMP, the julia mathematical programming language, can be used in RandomizedProgressiveHedging, a list of which can be found at [JuMP's documentation](http://www.juliaopt.org/JuMP.jl/v0.19.0/installation/#Getting-Solvers-1).
 
 Note that all algorithms layout subproblem with quadratic objectives. Default subproblem solver is the interior point algorithm Ipopt.
 
@@ -163,11 +163,11 @@ display(y_par)
 ### Solving with Asynchronous Randomized Progressive Hedging
 Asynchronous solve leverages the distributed capacities of julia. In order to be used, workers need to be available. Local or remote workers can be added with [`addprocs`](https://docs.julialang.org/en/v1/stdlib/Distributed/#Distributed.addprocs).
 
-`RPH` and `JuMP` packages need to be available for all workers, along with the scenario object and objective build function.
+`RandomizedProgressiveHedging` and `JuMP` packages need to be available for all workers, along with the scenario object and objective build function.
 
 ```julia
 addprocs(3)     # add 3 workers besides master
-@everywhere using RPH, JuMP
+@everywhere using RandomizedProgressiveHedging, JuMP
 
 @everywhere HydroThermalScenario, build_fs!
 

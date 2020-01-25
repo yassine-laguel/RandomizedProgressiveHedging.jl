@@ -125,16 +125,16 @@ function ScenarioTree(; depth::Int, nbranching::Int)
     nnodes = Int((nbranching^(depth)-1) / (nbranching-1))
     nscenarios = nbranching^(depth-1)
 
-    vecnodes = Vector{RPH.STreeNode}(undef, nnodes)
+    vecnodes = Vector{STreeNode}(undef, nnodes)
 
-    vecnodes[1] = RPH.STreeNode(nothing, Int[], 1:nscenarios, 1)
-    ind_node_prevdepth::RPH.STreeNodeId = 1
-    ind_node_curdepth::RPH.STreeNodeId = 2
+    vecnodes[1] = STreeNode(nothing, Int[], 1:nscenarios, 1)
+    ind_node_prevdepth::STreeNodeId = 1
+    ind_node_curdepth::STreeNodeId = 2
 
     for cur_depth in 2:depth
         ## build cur_depth depth nodes, reference childs of cur_depth-1  nodes.
         # nnode_curdepth = nbranching^cur_depth
-        ind_start_curdepth::RPH.STreeNodeId = ind_node_curdepth
+        ind_start_curdepth::STreeNodeId = ind_node_curdepth
 
         while ind_node_prevdepth < ind_start_curdepth
 
@@ -148,9 +148,9 @@ function ScenarioTree(; depth::Int, nbranching::Int)
             for ind_child in 0:nbranching-1
                 cur_start = cur_stop + 1
                 cur_stop = cur_start + subsetlength-1
-                vecnodes[ind_node_curdepth+ind_child] = RPH.STreeNode(ind_node_prevdepth, RPH.STreeNodeId[], cur_start:cur_stop, cur_depth) # Time spent here
+                vecnodes[ind_node_curdepth+ind_child] = STreeNode(ind_node_prevdepth, STreeNodeId[], cur_start:cur_stop, cur_depth) # Time spent here
             end
-            vecnodes[ind_node_prevdepth].childs = Vector{RPH.STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1) # Time spent here
+            vecnodes[ind_node_prevdepth].childs = Vector{STreeNodeId}(ind_node_curdepth:ind_node_curdepth+nbranching-1) # Time spent here
 
             ind_node_prevdepth += 1
             ind_node_curdepth += nbranching

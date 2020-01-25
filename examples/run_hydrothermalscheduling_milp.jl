@@ -1,5 +1,5 @@
 using Distributed
-@everywhere using RPH, Ipopt, Juniper, Cbc
+@everywhere using RandomizedProgressiveHedging, Ipopt, Juniper, Cbc
 using Mosek, MosekTools
 
 include("build_hydrothermalscheduling_milp.jl")
