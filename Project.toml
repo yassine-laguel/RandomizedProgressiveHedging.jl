@@ -1,4 +1,4 @@
-name = "RPH"
+name = "RandomizedProgressiveHedging"
 uuid = "9d6c422e-8155-11e9-28dd-5d3b5357240e"
 authors = ["Gilles <gilles.bareilles@gmail.com>"]
 version = "0.0.1"
