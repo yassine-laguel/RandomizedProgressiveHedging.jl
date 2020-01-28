@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · RandomizedProgressiveHedging</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">RandomizedProgressiveHedging</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Installation-1"><span>Installation</span></a></li><li><a class="tocitem" href="#Getting-solvers-1"><span>Getting solvers</span></a></li><li><a class="tocitem" href="#Laying-out-a-problem-1"><span>Laying out a problem</span></a></li><li><a class="tocitem" href="#Solving-a-problem-1"><span>Solving a problem</span></a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="../public_api/">Public</a></li><li><a class="tocitem" href="../internal_api/">Internal</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl/blob/master/docs/src/quickstart.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Quick-start-guide-1"><a class="docs-heading-anchor" href="#Quick-start-guide-1">Quick start guide</a><a class="docs-heading-anchor-permalink" href="#Quick-start-guide-1" title="Permalink"></a></h1><p>This section aims provides an explanation of how to build and solve a problem using RandomizedProgressiveHedging.jl by solving a toy problem. The equivalent script and ijulia notebook can be found in the <code>example</code> folder.</p><h2 id="Installation-1"><a class="docs-heading-anchor" href="#Installation-1">Installation</a><a class="docs-heading-anchor-permalink" href="#Installation-1" title="Permalink"></a></h2><p>RandomizedProgressiveHedging.jl is a pure julia package. It can be installed from julia by using the built-in package manager:</p><pre><code class="language-julia">using Pkg
+Pkg.add(&quot;https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl&quot;)</code></pre><h2 id="Getting-solvers-1"><a class="docs-heading-anchor" href="#Getting-solvers-1">Getting solvers</a><a class="docs-heading-anchor-permalink" href="#Getting-solvers-1" title="Permalink"></a></h2><p>RandomizedProgressiveHedging depends on other solvers to optimize the subproblems. All solvers interfaced with JuMP, the julia mathematical programming language, can be used in RandomizedProgressiveHedging, a list of which can be found at <a href="http://www.juliaopt.org/JuMP.jl/v0.19.0/installation/#Getting-Solvers-1">JuMP&#39;s documentation</a>.</p><p>Note that all algorithms layout subproblem with quadratic objectives. Default subproblem solver is the interior point algorithm Ipopt.</p><h2 id="Laying-out-a-problem-1"><a class="docs-heading-anchor" href="#Laying-out-a-problem-1">Laying out a problem</a><a class="docs-heading-anchor-permalink" href="#Laying-out-a-problem-1" title="Permalink"></a></h2><p>We take the following problem as example:</p><div>\[\begin{aligned}
+\underset{x}{\text{minimize}}\quad
+&amp; \sum_{t=1}^T C e_t + y_t \\
+\text{s.t.}\quad
+&amp; q_t, y_t, e_t \ge 0 \\
+&amp; q_t \le W \\
+&amp; e_t+y_t \ge D \\
+&amp; q_1 = \bar{r}-y_1 \\
+&amp; q_t = q_{t-1}+r[\xi_t]-y_t, \; t = 2, \ldots, T.
+\end{aligned}\]</div><p>where <span>$C = 5$</span>, <span>$W = 8$</span>, <span>$D = 6$</span>, <span>$r = [2, 10]$</span>. A scenario is defined by <span>$(\xi_t)_{t=2, \ldots, T}$</span>, for <span>$\xi_t\in\{1,2\}$</span>.</p><h3 id="Representing-a-scenario-1"><a class="docs-heading-anchor" href="#Representing-a-scenario-1">Representing a scenario</a><a class="docs-heading-anchor-permalink" href="#Representing-a-scenario-1" title="Permalink"></a></h3><p>A scenario is represented by the following structure:</p><pre><code class="language-julia">struct HydroThermalScenario &lt;: AbstractScenario
+    weather::Vector{Int}
+end</code></pre><p>Here, the attribut <code>weather</code> will hold one realisation of <span>$(\xi_t)_{t=2, \ldots, T}$</span>.</p><p>Along with this scenario structure, the function laying out the scenario objective function <span>$f_s$</span> needs to be defined. It takes as input the JuMP model that will hold <span>$f_s$</span>, an instance of the previously defined scenario structure, and the identifier of the scenario.</p><pre><code class="language-julia">function build_fs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
+    C = 5
+    W = 8
+    D = 6
+    rain = [2, 10]
+
+    T = length(s.weather)+1
+    Y = @variable(model, [1:3*T], base_name=&quot;y_s$id_scen&quot;)
+
+    q = [Y[1+3*k] for k in 0:T-1]
+    y = [Y[2+3*k] for k in 0:T-1]
+    e = [Y[3+3*k] for k in 0:T-1]
+
+    ## State variables constraints
+    @constraint(model, Y[:] .&gt;= 0)      # positivity constraint
+    @constraint(model, q .&lt;= W)         # reservoir max capacity
+    @constraint(model, e .+ y .&gt;= D)    # meet demand
+    
+    ## Dynamic constraints
+    @constraint(model, q[1] == sum(rain)/length(rain) - y[1])
+    @constraint(model, [t=2:T], q[t] == q[t-1] - y[t] + rain[s.weather[t-1]+1])
+    
+    objexpr = C*sum(e) + sum(y)
+
+    return Y, objexpr, []
+end</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><ul><li>The last item returned by the function should be the reference of constraints used to build the objective, none here. Such constraints can appear when modelling a <span>$\max(u, v)$</span> in the objective as a variable <span>$m$</span>, under the linear constraints <span>$m\ge u$</span> and <span>$m\ge v$</span>.</li></ul></div></div><h3 id="Representing-the-scenario-tree-1"><a class="docs-heading-anchor" href="#Representing-the-scenario-tree-1">Representing the scenario tree</a><a class="docs-heading-anchor-permalink" href="#Representing-the-scenario-tree-1" title="Permalink"></a></h3><p>The scenario tree represents the stage up to which scenarios are equal.</p><p>If the problem scenario tree is a <a href="https://en.wikipedia.org/wiki/M-ary_tree#Types_of_m-ary_trees">perfect <em>m</em>-ary tree</a>, it can be built using a buit-in function:</p><pre><code class="language-julia">scenariotree = ScenarioTree(; depth=T, nbranching=2)</code></pre><p>If the tree is not regular, or quite simple, it can be built by writing specifically the partition of equivalent scenarios per stage. A simple exmaple would be:</p><pre><code class="language-julia">stageid_to_scenpart = [
+    OrderedSet([BitSet(1:3)]),                      # Stage 1
+    OrderedSet([BitSet(1), BitSet(2:3)]),           # Stage 2
+    OrderedSet([BitSet(1), BitSet(2), BitSet(3)]),  # Stage 3
+]</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>However this method is not efficient, and whenever possible, builtin functions should be priviledged.</p></div></div><h3 id="Building-the-Problem-1"><a class="docs-heading-anchor" href="#Building-the-Problem-1">Building the <code>Problem</code></a><a class="docs-heading-anchor-permalink" href="#Building-the-Problem-1" title="Permalink"></a></h3><pre><code class="language-julia">scenid_to_weather(scen_id, T) = return [mod(floor(Int, scen_id / 2^i), 2) for i in T-1:-1:0]
+
+T = 5
+nbranching = 2
+
+p = 0.5
+
+nscenarios = 2^(T-1)
+scenarios = HydroThermalScenario[ HydroThermalScenario( scenid_to_weather(scen_id, T-1) ) for scen_id in 0:nscenarios-1]
+probas = [ prod(v*p + (1-v)*(1-p) for v in scenid_to_weather(scen_id, T-1)) for scen_id in 1:nscenarios ]
+
+stage_to_dim = [3*i-2:3*i for i in 1:T]
+scenariotree = ScenarioTree(; depth=T, nbranching=2)
+
+
+pb = Problem(
+    scenarios::Vector{HydroThermalScenario},
+    build_fs!::Function,
+    probas::Vector{Float64},
+    nscenarios::Int,
+    T::Int,
+    stage_to_dim::Vector{UnitRange{Int}},
+    scenariotree::ScenarioTree,
+)</code></pre><h2 id="Solving-a-problem-1"><a class="docs-heading-anchor" href="#Solving-a-problem-1">Solving a problem</a><a class="docs-heading-anchor-permalink" href="#Solving-a-problem-1" title="Permalink"></a></h2><h3 id="Explicitly-solving-the-problem-1"><a class="docs-heading-anchor" href="#Explicitly-solving-the-problem-1">Explicitly solving the problem</a><a class="docs-heading-anchor-permalink" href="#Explicitly-solving-the-problem-1" title="Permalink"></a></h3><pre><code class="language-julia">y_direct = solve_direct(pb)
+println(&quot;\nDirect solve output is:&quot;)
+display(y_direct)
+@show objective_value(pb, y_direct)</code></pre><h3 id="Solving-with-Progressive-Hedging-1"><a class="docs-heading-anchor" href="#Solving-with-Progressive-Hedging-1">Solving with Progressive Hedging</a><a class="docs-heading-anchor-permalink" href="#Solving-with-Progressive-Hedging-1" title="Permalink"></a></h3><pre><code class="language-julia">y_PH = solve_progressivehedging(pb, ϵ_primal=1e-4, ϵ_dual=1e-4, printstep=5)
+println(&quot;\nSequential solve output is:&quot;)
+display(y_PH)
+@show objective_value(pb, y_PH)</code></pre><h3 id="Solving-with-Randomized-Progressive-Hedging-1"><a class="docs-heading-anchor" href="#Solving-with-Randomized-Progressive-Hedging-1">Solving with Randomized Progressive Hedging</a><a class="docs-heading-anchor-permalink" href="#Solving-with-Randomized-Progressive-Hedging-1" title="Permalink"></a></h3><pre><code class="language-julia">y_sync = solve_randomized_sync(pb, maxtime=5, printstep=50)
+println(&quot;\nSynchronous solve output is:&quot;)
+display(y_sync)
+@show objective_value(pb, y_sync)</code></pre><h3 id="Solving-with-Parallel-Randomized-Progressive-Hedging-1"><a class="docs-heading-anchor" href="#Solving-with-Parallel-Randomized-Progressive-Hedging-1">Solving with Parallel Randomized Progressive Hedging</a><a class="docs-heading-anchor-permalink" href="#Solving-with-Parallel-Randomized-Progressive-Hedging-1" title="Permalink"></a></h3><pre><code class="language-julia">y_par = solve_randomized_par(pb, maxtime=5, printstep=50)
+println(&quot;\nSynchronous solve output is:&quot;)
+display(y_par)
+@show objective_value(pb, y_par)</code></pre><h3 id="Solving-with-Asynchronous-Randomized-Progressive-Hedging-1"><a class="docs-heading-anchor" href="#Solving-with-Asynchronous-Randomized-Progressive-Hedging-1">Solving with Asynchronous Randomized Progressive Hedging</a><a class="docs-heading-anchor-permalink" href="#Solving-with-Asynchronous-Randomized-Progressive-Hedging-1" title="Permalink"></a></h3><p>Asynchronous solve leverages the distributed capacities of julia. In order to be used, workers need to be available. Local or remote workers can be added with <a href="https://docs.julialang.org/en/v1/stdlib/Distributed/#Distributed.addprocs"><code>addprocs</code></a>.</p><p><code>RandomizedProgressiveHedging</code> and <code>JuMP</code> packages need to be available for all workers, along with the scenario object and objective build function.</p><pre><code class="language-julia">addprocs(3)     # add 3 workers besides master
+@everywhere using RandomizedProgressiveHedging, JuMP
+
+@everywhere HydroThermalScenario, build_fs!
+
+y_async = solve_randomized_async(pb, maxtime=5, printstep=100)
+println(&quot;Asynchronous solve output is:&quot;)
+display(y_async)
+@show objective_value(pb, y_par)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../public_api/">Public »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 28 January 2020 16:49">Tuesday 28 January 2020</span>. Using Julia version 1.1.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
