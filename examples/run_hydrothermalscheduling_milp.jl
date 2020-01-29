@@ -1,5 +1,5 @@
 using Distributed
-@everywhere using RandomizedProgressiveHedging, Ipopt, Juniper, Cbc
+@everywhere using RandomizedProgressiveHedging, JuMP, LinearAlgebra, Ipopt, Juniper, Cbc
 using Mosek, MosekTools
 
 include("build_hydrothermalscheduling_milp.jl")
@@ -52,21 +52,24 @@ function main()
     ## Problem solve: asynchronous (parallelized) version of PH
     y_async = solve_randomized_async(pb, maxtime=5, printstep=10, optimizer=optimizer, optimizer_params=optimizer_params)
     println("Asynchronous solve output is:")
-    display(y_async);
+    display(y_async)
 
 
     println("\nDirect solve output is:")
-    display(y_direct);
+    display(y_direct)
+    println()
     @show objective_value(pb, y_direct)
     # println("\nProgressive hedging solve output is:")
-    # display(y_PH);
+    # display(y_PH)
     println("\nSynchronous solve output is:")
-    display(y_sync);
+    display(y_sync)
+    println()
     @show objective_value(pb, y_sync)
     # println("\nParallel sollve output is:")
-    # display(y_par);
+    # display(y_par)
     println("Asynchronous solve output is:")
-    display(y_async);
+    display(y_async)
+    println()
     @show objective_value(pb, y_async)
 
     return

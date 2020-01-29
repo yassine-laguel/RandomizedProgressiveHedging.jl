@@ -1,9 +1,8 @@
 using Distributed
-
-@everywhere using JuMP, RandomizedProgressiveHedging
+@everywhere using RandomizedProgressiveHedging, JuMP
 
 include("build_simpleexample.jl")
-using Ipopt
+using GLPK, Ipopt
 
 function main()
     pb = build_simpleexample()

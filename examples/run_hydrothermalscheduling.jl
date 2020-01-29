@@ -1,5 +1,6 @@
 using Distributed
-using RandomizedProgressiveHedging, Ipopt
+@everywhere using RandomizedProgressiveHedging, LinearAlgebra, JuMP
+using Ipopt, GLPK
 
 include("build_hydrothermalscheduling_extended.jl")
 
