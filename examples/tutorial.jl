@@ -1,8 +1,6 @@
 using Distributed
 @everywhere using JuMP, RandomizedProgressiveHedging
-using Ipopt
-
-using DataStructures, LinearAlgebra, GLPK
+using DataStructures
 
 @everywhere struct HydroThermalScenario <: AbstractScenario
     weather::Vector{Int}
@@ -65,7 +63,7 @@ function main()
 
     #########################################################
     ## Problem solve: build and solve complete problem, exponential in constraints
-    y_direct = solve_direct(pb, optimizer=GLPK.Optimizer)
+    y_direct = solve_direct(pb)
     println("\nDirect solve output is:")
     display(y_direct)
     println("")

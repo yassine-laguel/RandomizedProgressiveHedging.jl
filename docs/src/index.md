@@ -6,6 +6,3 @@ This module aims to solve multistage stochastic problems by randomized versions 
 ```@contents
 Pages = ["index.md", "quickstart.md", "reference.md"]
 ```
-
-## Citing RPH.jl
-...

@@ -1,6 +1,6 @@
 using Distributed
 
-@everywhere using JuMP, RPH
+@everywhere using JuMP, RandomizedProgressiveHedging
 
 include("build_simpleexample.jl")
 using Ipopt

@@ -1,12 +1,13 @@
 # Quick start guide
 
-This section aims provides an explanation of how to build and solve a problem using RandomizedProgressiveHedging.jl by solving a toy problem. The equivalent script and ijulia notebook can be found in the `example` folder.
+This section aims provides an explanation of how to build and solve a problem using RandomizedProgressiveHedging.jl by solving a toy problem. The equivalent script and ijulia notebook can be found in the `examples` folder.
 
 ## Installation
 RandomizedProgressiveHedging.jl is a pure julia package. It can be installed from julia by using the built-in package manager:
 ```julia
 using Pkg
-Pkg.add("https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl")
+Pkg.add("RandomizedProgressiveHedging")
+using RandomizedProgressiveHedging
 ```
 
 ## Getting solvers
@@ -45,6 +46,8 @@ Here, the attribut `weather` will hold one realisation of ``(\xi_t)_{t=2, \ldots
 Along with this scenario structure, the function laying out the scenario objective function ``f_s`` needs to be defined.
 It takes as input the JuMP model that will hold ``f_s``, an instance of the previously defined scenario structure, and the identifier of the scenario.
 ```julia
+using JuMP
+
 function build_fs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::ScenarioId)
     C = 5
     W = 8
@@ -62,11 +65,11 @@ function build_fs!(model::JuMP.Model, s::HydroThermalScenario, id_scen::Scenario
     @constraint(model, Y[:] .>= 0)      # positivity constraint
     @constraint(model, q .<= W)         # reservoir max capacity
     @constraint(model, e .+ y .>= D)    # meet demand
-    
+
     ## Dynamic constraints
     @constraint(model, q[1] == sum(rain)/length(rain) - y[1])
     @constraint(model, [t=2:T], q[t] == q[t-1] - y[t] + rain[s.weather[t-1]+1])
-    
+
     objexpr = C*sum(e) + sum(y)
 
     return Y, objexpr, []
@@ -80,13 +83,14 @@ end
 ### Representing the scenario tree
 The scenario tree represents the stage up to which scenarios are equal.
 
-If the problem scenario tree is a [perfect *m*-ary tree](https://en.wikipedia.org/wiki/M-ary_tree#Types_of_m-ary_trees), it can be built using a buit-in function:
+If the problem scenario tree is a [perfect ``m``-ary tree](https://en.wikipedia.org/wiki/M-ary_tree#Types_of_m-ary_trees) of depth ``T``, it can be built using a buit-in function:
 ```julia
-scenariotree = ScenarioTree(; depth=T, nbranching=2)
+scenariotree = ScenarioTree(; depth=T, nbranching=m)
 ```
 
-If the tree is not regular, or quite simple, it can be built by writing specifically the partition of equivalent scenarios per stage. A simple exmaple would be:
+If the tree is not regular, or simple enough, it can be built by writing specifically the partition of equivalent scenarios per stage. A simple example would be:
 ```julia
+using DataStructures
 stageid_to_scenpart = [
     OrderedSet([BitSet(1:3)]),                      # Stage 1
     OrderedSet([BitSet(1), BitSet(2:3)]),           # Stage 2
@@ -94,7 +98,7 @@ stageid_to_scenpart = [
 ]
 ```
 !!! note
-    However this method is not efficient, and whenever possible, builtin functions should be priviledged.
+    However this method is not efficient, and whenever possible builtin functions should be favoured.
 
 ### Building the `Problem`
 

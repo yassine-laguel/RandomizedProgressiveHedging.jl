@@ -13,8 +13,7 @@ function display_algopb_stats(pb::Problem, algoname, printlev; maxiter, maxtime,
         @printf " - %-16s  %-6i\n" "maxtime (s)" maxtime
         for (param, pval) in kwargs
             @printf " - %-16s  " param
-            display(pval)
-            println()
+            println(pval)
         end
     end
     return
