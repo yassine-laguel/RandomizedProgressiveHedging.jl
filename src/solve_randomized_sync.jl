@@ -8,7 +8,7 @@ function randsync_subproblem_solve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
     n = sum(length.(pb.stage_to_dim))
 
     ## Regalurized problem
-    model = Model(with_optimizer(params[:optimizer]; params[:optimizer_params]...))
+    model = Model(optimizer_with_attributes(params[:optimizer], params[:optimizer_params]...))
 
     # Get scenario objective function, build constraints in model
     y, obj, ctrref = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
@@ -86,7 +86,7 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
     `hist[:approxsol]`, indexed by iteration.
     + `:logstep`: number of iteration between each log.
 - `optimizer`: an optimizer for subproblem solve.
-- `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
+- `optimizer_params`: a `Dict{String, Any}` storing parameters for the optimizer.
 - `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each
 log phase. `x` is the current feasible global iterate.
 """
@@ -100,7 +100,7 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
                                             seed = nothing,
                                             hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                             optimizer = Ipopt.Optimizer,
-                                            optimizer_params = Dict{Symbol, Any}(:print_level=>0),
+                                            optimizer_params = Dict{String, Any}("print_level"=>0),
                                             callback=nothing,
                                             kwargs...)
     display_algopb_stats(pb, "Randomized Progressive Hedging - synchronous", printlev, μ=μ, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)

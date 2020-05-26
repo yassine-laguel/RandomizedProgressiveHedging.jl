@@ -26,7 +26,7 @@ function main()
         !haskey(hist, :cvarvalues) && (hist[:cvarvalues]=Float64[])
 
         fvalues = [objective_value(pb, x[:, 2:end], id_scen) for id_scen in 1:pb.nscenarios]
-        model = Model(with_optimizer(GLPK.Optimizer))
+        model = Model(GLPK.Optimizer)
 
         @variable(model, eta)
         @variable(model, m[1:pb.nscenarios])

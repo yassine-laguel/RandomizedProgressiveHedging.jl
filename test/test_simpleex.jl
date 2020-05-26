@@ -9,7 +9,7 @@ using Ipopt, LinearAlgebra, Distributed
                    1.75  2.5  3.0]
 
     @testset "Direct resolution" begin
-        y_direct = solve_direct(pb, optimizer = Ipopt.Optimizer, printlev=0, optimizer_params=Dict{Symbol, Any}(:print_level=>0))
+        y_direct = solve_direct(pb, optimizer = Ipopt.Optimizer, printlev=0, optimizer_params=Dict{String, Any}("print_level"=>0))
 
         @test isapprox(y_direct, xsol, atol=1e-3)
     end

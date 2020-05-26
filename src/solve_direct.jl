@@ -6,17 +6,17 @@ constraints, and solve globally.
 
 ## Keyword arguments:
 - `optimizer`: optimizer used for solve. Default is `GLPK.Optimizer`.
-- `optimizer_params`: a `Dict{Symbol, Any}` storing parameters for the optimizer.
+- `optimizer_params`: a `Dict{String, Any}` storing parameters for the optimizer.
 - `printlev`: if 0, mutes output from the function (not solver). Default value is 1.
 """
 function solve_direct(pb::Problem; optimizer = GLPK.Optimizer,
-                                   optimizer_params = Dict{Symbol, Any}(),
+                                   optimizer_params = Dict{String, Any}(),
                                    printlev = 1)
     printlev>0 && println("--------------------------------------------------------")
     printlev>0 && println("--- Direct solve")
     printlev>0 && println("--------------------------------------------------------")
 
-    model = Model(with_optimizer(optimizer; optimizer_params...))
+    model = Model(optimizer_with_attributes(optimizer, optimizer_params...))
 
     printlev>0 && println("Building global model...")
     ## Collect subproblems

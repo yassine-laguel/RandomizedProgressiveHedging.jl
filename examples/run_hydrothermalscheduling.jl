@@ -27,13 +27,13 @@ function main()
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_sync = solve_randomized_sync(pb, maxtime=3, printstep=10)
+    y_sync = solve_randomized_sync(pb, maxtime=20, printstep=10)
     # println("\nSynchronous solve output is:")
     # display(y_sync);
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_par = solve_randomized_par(pb, maxtime=3, printstep=10)
+    y_par = solve_randomized_par(pb, maxtime=20, printstep=10)
     # println("\nSynchronous solve output is:")
     # display(y_sync);
 

@@ -47,10 +47,10 @@ Evaluate the objective of the subproblem associated with scenario `id_scen` of p
 """
 function objective_value(pb, x, id_scen)
     optimizer=Ipopt.Optimizer
-    optimizer_params = Dict{Symbol, Any}(:print_level=>0)
+    optimizer_params = Dict{String, Any}("print_level"=>0)
 
     ## Layout JuMP problem with objective
-    model = Model(with_optimizer(optimizer; optimizer_params...))
+    model = Model(optimizer_with_attributes(optimizer, optimizer_params...))
 
     y, obj, ctrrefs = pb.build_subpb(model, pb.scenarios[id_scen], id_scen)
 
