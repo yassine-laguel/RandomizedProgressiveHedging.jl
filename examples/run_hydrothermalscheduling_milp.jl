@@ -29,10 +29,10 @@ function main()
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
     optimizer = Juniper.Optimizer
-    optimizer_params = Dict{Symbol, Any}()
-    optimizer_params[:log_levels] = []
-    optimizer_params[:nl_solver] = optimizer_with_params(Ipopt.Optimizer, "print_level"=>0)
-    optimizer_params[:mip_solver] = optimizer_with_params(Cbc.Optimizer, "logLevel"=>0)
+    optimizer_params = Dict{String, Any}()
+    optimizer_params["log_levels"] = []
+    optimizer_params["nl_solver"] = optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0)
+    optimizer_params["mip_solver"] = optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
     # optimizer_params[:log_levels] = []
     # optimizer_params[:log_levels] = [:Info, :Table]
 
