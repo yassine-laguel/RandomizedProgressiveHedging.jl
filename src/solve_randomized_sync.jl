@@ -43,11 +43,11 @@ function randsync_initialization!(z, pb, μ, subpbparams, printlev)
     return
 end
 
-function randsync_print_log(pb, x, y, x_feas, printlev, hist, it, computingtime, tinit, callback)
+function randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
 
-    printlev>0 && @printf "%5i   %.10e % .16e\n" it steplength objval
+    printlev>0 && @printf "%5i   %.2e       %.10e % .16e\n" it nscenariostreated steplength objval
 
     (hist!==nothing) && push!(hist[:functionalvalue], objval)
     (hist!==nothing) && push!(hist[:computingtime], computingtime)
@@ -145,13 +145,15 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
 
     it = 0
     computingtime = 0.0
+    nscenariostreated = nscenarios
 
-    printlev>0 && @printf "   it   global residual   objective\n"
+    printlev>0 && @printf "   it   #scenarios     global residual   objective\n"
     nonanticipatory_projection!(x_feas, pb, z)
-    randsync_print_log(pb, x, y, x_feas, printlev, hist, it, computingtime, tinit, callback)
+    randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
 
     while it < maxiter && time()-tinit < maxtime && computingtime < maxcomputingtime
         it += 1
+        nscenariostreated += 1
         it_startcomputingtime = time()
 
         id_scen = rand(rng, scen_sampling_distrib)
@@ -171,14 +173,14 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
         # Print and logs
         if mod(it, printstep) == 0
             nonanticipatory_projection!(x_feas, pb, z)
-            randsync_print_log(pb, x, y, x_feas, printlev, hist, it, computingtime, tinit, callback)
+            randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
         end
     end
 
     ## Final print
     if mod(it, printstep) != 0
         nonanticipatory_projection!(x_feas, pb, z)
-        randsync_print_log(pb, x, y, x_feas, printlev, hist, it, computingtime, tinit, callback)
+        randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
     end
 
     printlev>0 && println("Computation time (s): ", computingtime)

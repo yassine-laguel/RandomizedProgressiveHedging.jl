@@ -156,11 +156,11 @@ function randpar_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     return subpbparams
 end
 
-function randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+function randpar_print_log(pb, z, z_prev, x, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, x)
     steplength = norm(z-z_prev)
 
-    printlev>0 && @printf "%5i   %.10e   % .16e \n" it steplength objval
+    printlev>0 && @printf "%5i   %.2e       %.10e % .16e\n" it nscenariostreated steplength objval
 
     (hist!==nothing) && push!(hist[:functionalvalue], objval)
     (hist!==nothing) && push!(hist[:computingtime], computingtime)
@@ -268,12 +268,14 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
     it = 0
     computingtime = 0.0
+    nscenariostreated = nscenarios
 
-    printlev>0 && @printf "   it   residual            objective                \n"
-    randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+    printlev>0 && @printf "   it   #scenarios     residual            objective\n"
+    randpar_print_log(pb, z, z_prev, x, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
 
     while it < maxiter && time()-tinit < maxtime && computingtime < maxcomputingtime
         it += 1
+        nscenariostreated += minworkscen
         it_startcomputingtime = time()
 
         copy!(z_prev, z)
@@ -308,13 +310,13 @@ function solve_randomized_par(pb::Problem{T}; μ::Float64 = 3.0,
 
         # Print and logs
         if mod(it, printstep) == 0
-            randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+            randpar_print_log(pb, z, z_prev, x, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
         end
     end
 
     ## Final print
     if mod(it, printstep) != 0
-        randpar_print_log(pb, z, z_prev, x, printlev, hist, it, computingtime, tinit, callback)
+        randpar_print_log(pb, z, z_prev, x, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
     end
 
     printlev>0 && println("Computation time (s): ", computingtime)

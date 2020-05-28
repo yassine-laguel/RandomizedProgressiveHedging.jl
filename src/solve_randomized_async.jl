@@ -157,11 +157,11 @@ function randasync_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
     return subpbparams
 end
 
-function randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
+function randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, z_feas)
     steplength = norm(step)
 
-    printlev>0 && @printf "%5i   %.10e   % .16e  %3i  %3i\n" it steplength objval τ delay
+    printlev>0 && @printf "%5i   %.2e       %.10e % .16e  %3i  %3i\n" it nscenariostreated steplength objval τ delay
 
     (hist!==nothing) && push!(hist[:functionalvalue], objval)
     (hist!==nothing) && push!(hist[:computingtime], computingtime)
@@ -273,6 +273,7 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
 
     it = 0
     computingtime = 0.0
+    nscenariostreated = nscenarios
 
     ## Feeding every worker with one task
     for (x_coord, w_id) in enumerate(workers())
@@ -289,11 +290,13 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
     objval = objective_value(pb, z)
     init_objval = objval
 
-    printlev>0 && @printf "   it   residual            objective                 τ    delay\n"
-    randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
+    printlev>0 && @printf "   it   #scenarios     residual          objective                 τ    delay\n"
+
+    randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
 
     while it < maxiter && time()-tinit < maxtime && computingtime < maxcomputingtime && objval < 3*init_objval
         it += 1
+        nscenariostreated += 1
         it_startcomputingtime = time()
 
         ## Get a completed task
@@ -333,15 +336,13 @@ function solve_randomized_async(pb::Problem{T}; μ::Float64 = 3.0,
         (hist!==nothing) && push!(hist[:maxdelay], delay)
         if mod(it, printstep) == 0
             nonanticipatory_projection!(z_feas, pb, z)
-            randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
+            randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
         end
-
-        it += 1
     end
 
     ## Get final solution
     nonanticipatory_projection!(z_feas, pb, z)
-    randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, computingtime, tinit, callback)
+    randasync_print_log(pb, z_feas, step, τ, delay, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
 
     printlev>0 && println("Computation time (s): ", computingtime)
     printlev>0 && println("Total time       (s): ", time() - tinit)
