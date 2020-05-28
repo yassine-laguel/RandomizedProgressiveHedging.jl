@@ -22,7 +22,7 @@ function main()
 
     # #########################################################
     # ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    # y_PH = solve_progressivehedging(pb, maxtime=20, ϵ_primal=1e-8, ϵ_dual=1e-8, printstep=1, optimizer=optimizer, optimizer_params=optimizer_params)
+    # y_PH = solve_progressivehedging(pb, maxtime=20, printstep=1, optimizer=optimizer, optimizer_params=optimizer_params)
     # println("\nProgressive hedging solve output is:")
     # display(y_PH);
 

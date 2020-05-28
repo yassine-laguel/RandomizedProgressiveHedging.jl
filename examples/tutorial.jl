@@ -71,7 +71,7 @@ function main()
 
     #########################################################
     ## Problem solve: progressive hedging
-    y_PH = solve_progressivehedging(pb, ϵ_primal=1e-4, ϵ_dual=1e-4, printstep=5)
+    y_PH = solve_progressivehedging(pb, printstep=5)
     println("\nSequential solve output is:")
     display(y_PH)
     println("")

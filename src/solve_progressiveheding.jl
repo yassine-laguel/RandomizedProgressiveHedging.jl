@@ -50,11 +50,11 @@ function ph_initialization!(x, u, y, pb, μ, subpbparams, printlev)
     return
 end
 
-function ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+function ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
     objval = objective_value(pb, x)
     dot_xu = dot(pb, x, u)
 
-    printlev>0 && @printf "%3i   %.10e  %.10e   % .3e % .16e\n" it primres dualres dot_xu objval
+    printlev>0 && @printf "%3i   %.2e       %.10e  %.10e   % .3e % .16e\n" it nscenariostreated primres dualres dot_xu objval
 
     (hist!==nothing) && push!(hist[:functionalvalue], objval)
     (hist!==nothing) && push!(hist[:computingtime], computingtime)
@@ -67,6 +67,11 @@ function ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingt
     return
 end
 
+function ph_hasconverged(pb, x, primres, dualres, ϵ_abs, ϵ_rel)
+    ϵ = ϵ_abs + ϵ_rel * norm(pb, x)
+    return (primres < ϵ) && (dualres < ϵ)
+end
+
 """
     x = solve_progressivehedging(pb::Problem)
 
@@ -76,8 +81,8 @@ Stopping criterion is based on primal dual residual, maximum iterations or time
 can also be set. Return a feasible point `x`.
 
 ## Keyword arguments:
-- `ϵ_primal`: Tolerance on primal residual.
-- `ϵ_dual`: Tolerance on dual residual.
+- `ϵ_abs`: Absolute tolerance on primal residual.
+- `ϵ_rel`: Relative tolerance on primal residual.
 - `μ`: Regularization parameter.
 - `maxtime`: Limit on time spent in `solve_progressivehedging`.
 - `maxcomputingtime`: Limit time spent in computations, excluding computation of initial feasible point and computations required by plottting / logging.
@@ -93,8 +98,8 @@ can also be set. Return a feasible point `x`.
 - `optimizer_params`: a `Dict{String, Any}` storing parameters for the optimizer.
 - `callback`: either nothing or a function `callback(pb, x, hist)::nothing` called at each log phase. `x` is the current feasible global iterate.
 """
-function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
-                                               ϵ_dual = 1e-4,
+function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
+                                               ϵ_rel = 1e-4,
                                                μ = 3,
                                                maxtime = 3600,
                                                maxcomputingtime = Inf,
@@ -106,7 +111,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
                                                optimizer_params = Dict{String, Any}("print_level"=>0),
                                                callback = nothing,
                                                kwargs...)
-    display_algopb_stats(pb, "Progressive Hedging", printlev, ϵ_primal=ϵ_primal, ϵ_dual=ϵ_dual, μ=μ, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
+    display_algopb_stats(pb, "Progressive Hedging", printlev, ϵ_abs=ϵ_abs, ϵ_rel=ϵ_rel, μ=μ, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
     nstages = pb.nstages
@@ -116,7 +121,7 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     y = zeros(Float64, nscenarios, n)
     x = zeros(Float64, nscenarios, n)
     u = zeros(Float64, nscenarios, n)
-    u_old = zeros(Float64, nscenarios, n)
+    x_old = zeros(Float64, nscenarios, n)
     primres = dualres = Inf
 
     (hist!==nothing) && (hist[:functionalvalue] = Float64[])
@@ -132,26 +137,28 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
     # initialisation, for fair comparison with randomized methods.
     tinit = time()
     ph_initialization!(x, u, y, pb, μ, subpbparams, printlev)
-    objval, dot_xu, primres, dualres = objective_value(pb, x), dot(pb, x, u), norm(pb, x-y), (1/μ) * norm(pb, u)
+    objval, dot_xu, primres, dualres = objective_value(pb, x), dot(pb, x, u), norm(pb, x-x_old), (1/μ) * norm(pb, y-x)
 
     it = 0
     computingtime = 0.0
+    nscenariostreated = nscenarios
 
-    printlev>0 && @printf " it   primal res        dual res            dot(x,u)   objective\n"
-    ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+    printlev>0 && @printf " it   #scenario      primal res        dual res            dot(x,u)   objective\n"
+    ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
 
-    while (!(primres < ϵ_primal && dualres < ϵ_dual) && it < maxiter
+    while (!ph_hasconverged(pb, x, primres, dualres, ϵ_abs, ϵ_rel) && it < maxiter
                                                     && time() - tinit < maxtime
                                                     && computingtime < maxcomputingtime)
         it += 1
         it_startcomputingtime = time()
 
-        copy!(u_old, u)
+        copy!(x_old, x)
 
         # Subproblem solves
         for id_scen in 1:nscenarios
             y[id_scen, :] = ph_subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, subpbparams)
         end
+        nscenariostreated += n
 
         # projection on non anticipatory subspace
         nonanticipatory_projection!(x, pb, y)
@@ -160,20 +167,20 @@ function solve_progressivehedging(pb::Problem; ϵ_primal = 1e-4,
         u += (1/μ) * (y-x)
 
 
-        primres = norm(pb, x-y)
-        dualres = (1/μ) * norm(pb, u - u_old)
+        primres = norm(pb, x-x_old)
+        dualres = (1/μ) * norm(pb, y-x)
 
         computingtime += time() - it_startcomputingtime
 
         # Print and logs
         if mod(it, printstep) == 0
-            ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+            ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
         end
     end
 
     ## Final print
     if mod(it, printstep) != 0
-        ph_print_log(pb, x, u, printlev, hist, it, primres, dualres, computingtime, tinit, callback)
+        ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
     end
 
     printlev>0 && println("Computation time (s): ", computingtime)

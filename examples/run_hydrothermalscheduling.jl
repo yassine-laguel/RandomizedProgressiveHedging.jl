@@ -21,7 +21,7 @@ function main()
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    y_PH = solve_progressivehedging(pb, maxtime=20, ϵ_primal=1e-4, printstep=1)
+    y_PH = solve_progressivehedging(pb, maxtime=20, printstep=1)
     # println("\nSequential solve output is:")
     # display(y_PH);
 

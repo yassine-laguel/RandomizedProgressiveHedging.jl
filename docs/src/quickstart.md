@@ -142,7 +142,7 @@ display(y_direct)
 
 ### Solving with Progressive Hedging
 ```julia
-y_PH = solve_progressivehedging(pb, ϵ_primal=1e-4, ϵ_dual=1e-4, printstep=5)
+y_PH = solve_progressivehedging(pb, printstep=5)
 println("\nSequential solve output is:")
 display(y_PH)
 @show objective_value(pb, y_PH)
