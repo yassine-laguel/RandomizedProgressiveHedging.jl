@@ -18,3 +18,12 @@ function display_algopb_stats(pb::Problem, algoname, printlev; maxiter, maxtime,
     end
     return
 end
+
+
+function rand_getresidual(pb, z, z_old)
+    return norm(pb, z-z_old)
+end
+
+function rand_hasconverged(pb, z, residual, ϵ_abs, ϵ_rel)
+    return residual < ϵ_abs + ϵ_rel * norm(pb, z)
+end

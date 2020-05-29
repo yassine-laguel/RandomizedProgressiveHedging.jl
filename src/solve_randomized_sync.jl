@@ -43,11 +43,11 @@ function randsync_initialization!(z, pb, μ, subpbparams, printlev)
     return
 end
 
-function randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
+function randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, x_feas)
     steplength = norm(x-y)
 
-    printlev>0 && @printf "%5i   %.2e       %.10e % .16e\n" it nscenariostreated steplength objval
+    printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e\n" it nscenariostreated steplength residual objval
 
     (hist!==nothing) && push!(hist[:functionalvalue], objval)
     (hist!==nothing) && push!(hist[:computingtime], computingtime)
@@ -65,19 +65,27 @@ end
 
 Run the Randomized Progressive Hedging scheme on problem `pb`.
 
-Stopping criterion is maximum iterations or time. Return a feasible point `x`.
+Stopping criterion is maximum iterations, time, or the residual, defined as ``|z_{k-d}-z_k\``
+where ``d`` is the interval between checks, `residualupdate_interval`, equal to the number
+of scenarios by default. Return a feasible point `x`.
 
 ## Keyword arguments:
+- `ϵ_abs`: Absolute tolerance on residual.
+- `ϵ_rel`: Relative tolerance on residual.
+- `residualupdate_interval`: number of scenario to be treated before computing and checking
+residual, default value is the number of scenarios in the problem.
 - `μ`: Regularization parameter.
 - `qdistr`: strategy of scenario sampling for subproblem selection,
     + `:pdistr`: samples according to objective scenario probability distribution,
     + `:unifdistr`: samples according to uniform distribution,
     + otherwise, an `Array` specifying directly the probablility distribution.
 - `maxtime`: Limit on time spent in `solve_progressivehedging`.
-- `maxcomputingtime`: Limit time spent in computations, excluding computation of initial feasible point and computations required by plottting / logging.
+- `maxcomputingtime`: Limit time spent in computations, excluding computation of initial
+feasible point and computations required by plottting / logging.
 - `maxiter`: Maximum iterations.
 - `printlev`: if 0, mutes output.
-- `printstep`: number of iterations skipped between each print and logging.
+- `printstep`: number of iterations skipped between each print and logging, default value is
+the number of scenarios in problem.
 - `seed`: if not `nothing`, specifies the seed used for scenario sampling.
 - `hist`: if not `nothing`, will record:
     + `:functionalvalue`: array of functional value indexed by iteration,
@@ -90,29 +98,35 @@ Stopping criterion is maximum iterations or time. Return a feasible point `x`.
 - `callback`: either `nothing` or a function `callback(pb, x, hist)::nothing` called at each
 log phase. `x` is the current feasible global iterate.
 """
-function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
+function solve_randomized_sync(pb::Problem; ϵ_abs = 1e-8,
+                                            ϵ_rel = 1e-4,
+                                            residualupdate_interval = nothing,
+                                            μ::Float64 = 3.0,
                                             qdistr = :pdistr,
                                             maxtime = 3600.0,
                                             maxcomputingtime = Inf,
                                             maxiter = 1e5,
                                             printlev = 1,
-                                            printstep = 1,
+                                            printstep = nothing,
                                             seed = nothing,
                                             hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                             optimizer = Ipopt.Optimizer,
                                             optimizer_params = Dict{String, Any}("print_level"=>0),
                                             callback=nothing,
                                             kwargs...)
-    display_algopb_stats(pb, "Randomized Progressive Hedging - synchronous", printlev, μ=μ, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
+    display_algopb_stats(pb, "Randomized Progressive Hedging - synchronous", printlev, ϵ_abs=ϵ_abs, ϵ_rel=ϵ_rel, μ=μ, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
     nstages = pb.nstages
     nscenarios = pb.nscenarios
     n = get_scenariodim(pb)
+    isnothing(residualupdate_interval) && (residualupdate_interval = nscenarios)
+    isnothing(printstep) && (printstep = nscenarios)
 
     x = zeros(Float64, n)
     y = zeros(Float64, n)
     z = zeros(Float64, nscenarios, n)
+    z_old = zeros(Float64, nscenarios, n)
     x_feas = zeros(Float64, nscenarios, n)
     steplength = Inf
 
@@ -146,12 +160,17 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
     it = 0
     computingtime = 0.0
     nscenariostreated = nscenarios
+    lastresidualupdate = 0
+    residual = rand_getresidual(pb, z, z_old)
 
-    printlev>0 && @printf "   it   #scenarios     global residual   objective\n"
+    printlev>0 && @printf "   it   #scenarios     iteration step     residual              objective\n"
     nonanticipatory_projection!(x_feas, pb, z)
-    randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
+    randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
 
-    while it < maxiter && time()-tinit < maxtime && computingtime < maxcomputingtime
+    while !rand_hasconverged(pb, z, residual, ϵ_abs, ϵ_rel) &&
+            it < maxiter &&
+            time()-tinit < maxtime &&
+            computingtime < maxcomputingtime
         it += 1
         nscenariostreated += 1
         it_startcomputingtime = time()
@@ -170,17 +189,25 @@ function solve_randomized_sync(pb::Problem; μ::Float64 = 3.0,
 
         computingtime += time() - it_startcomputingtime
 
+
+        # update residual if enough scenario have been treated since last residual eval
+        if nscenariostreated > lastresidualupdate + residualupdate_interval
+            residual = rand_getresidual(pb, z, z_old)
+            copy!(z_old, z)
+            lastresidualupdate = nscenariostreated
+        end
+
         # Print and logs
         if mod(it, printstep) == 0
             nonanticipatory_projection!(x_feas, pb, z)
-            randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
+            randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
         end
     end
 
     ## Final print
     if mod(it, printstep) != 0
         nonanticipatory_projection!(x_feas, pb, z)
-        randsync_print_log(pb, x, y, x_feas, printlev, hist, it, nscenariostreated, computingtime, tinit, callback)
+        randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     end
 
     printlev>0 && println("Computation time (s): ", computingtime)

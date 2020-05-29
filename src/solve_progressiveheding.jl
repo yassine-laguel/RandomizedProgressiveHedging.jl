@@ -81,8 +81,8 @@ Stopping criterion is based on primal dual residual, maximum iterations or time
 can also be set. Return a feasible point `x`.
 
 ## Keyword arguments:
-- `ϵ_abs`: Absolute tolerance on primal residual.
-- `ϵ_rel`: Relative tolerance on primal residual.
+- `ϵ_abs`: Absolute tolerance on residual.
+- `ϵ_rel`: Relative tolerance on residual.
 - `μ`: Regularization parameter.
 - `maxtime`: Limit on time spent in `solve_progressivehedging`.
 - `maxcomputingtime`: Limit time spent in computations, excluding computation of initial feasible point and computations required by plottting / logging.

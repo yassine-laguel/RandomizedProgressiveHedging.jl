@@ -21,25 +21,25 @@ function main()
 
     #########################################################
     ## Problem solve: classical PH algo, as in Ruszczynski book, p. 203
-    y_PH = solve_progressivehedging(pb, maxtime=20, printstep=1)
+    y_PH = solve_progressivehedging(pb, maxtime=10)
     # println("\nSequential solve output is:")
     # display(y_PH);
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_sync = solve_randomized_sync(pb, maxtime=20, printstep=10)
+    y_sync = solve_randomized_sync(pb, maxtime=10)
     # println("\nSynchronous solve output is:")
     # display(y_sync);
 
     #########################################################
     ## Problem solve: synchronous (un parallelized) version of PH
-    y_par = solve_randomized_par(pb, maxtime=20, printstep=10)
+    y_par = solve_randomized_par(pb, maxtime=10)
     # println("\nSynchronous solve output is:")
     # display(y_sync);
 
     # #########################################################
     # ## Problem solve: asynchronous (parallelized) version of PH
-    y_async = solve_randomized_async(pb, maxtime=15, printstep=100)
+    y_async = solve_randomized_async(pb, maxtime=10)
     # println("Asynchronous solve output is:")
     # display(y_async);
 
