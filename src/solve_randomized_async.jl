@@ -139,12 +139,15 @@ end
 
 
 function randasync_init_hist!(hist, printstep)
-    (hist!==nothing) && (hist[:functionalvalue] = Float64[])
-    (hist!==nothing) && (hist[:computingtime] = Float64[])
-    (hist!==nothing) && (hist[:time] = Float64[])
-    (hist!==nothing) && (hist[:maxdelay] = Int32[])
-    (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    (hist!==nothing) && (hist[:logstep] = printstep)
+    if hist!==nothing
+        hist[:functionalvalue] = Float64[]
+        hist[:residual] = Float64[]
+        hist[:computingtime] = Float64[]
+        hist[:time] = Float64[]
+        hist[:maxdelay] = Int32[]
+        hist[:logstep] = printstep
+        haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
+    end
     return
 end
 
@@ -163,10 +166,13 @@ function randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hi
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e  %3i  %3i\n" it nscenariostreated steplength residual objval τ delay
 
-    (hist!==nothing) && push!(hist[:functionalvalue], objval)
-    (hist!==nothing) && push!(hist[:computingtime], computingtime)
-    (hist!==nothing) && push!(hist[:time], time() - tinit)
-    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(z_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
+    if hist!==nothing
+        push!(hist[:functionalvalue], objval)
+        push!(hist[:residual], residual)
+        push!(hist[:computingtime], computingtime)
+        push!(hist[:time], time() - tinit)
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(z_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
+    end
 
     if (callback!==nothing)
         callback(pb, z_feas, hist)

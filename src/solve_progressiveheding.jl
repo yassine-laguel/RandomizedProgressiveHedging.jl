@@ -56,10 +56,15 @@ function ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, 
 
     printlev>0 && @printf "%3i   %.2e       %.10e  %.10e   % .3e % .16e\n" it nscenariostreated primres dualres dot_xu objval
 
-    (hist!==nothing) && push!(hist[:functionalvalue], objval)
-    (hist!==nothing) && push!(hist[:computingtime], computingtime)
-    (hist!==nothing) && push!(hist[:time], time() - tinit)
-    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+    if hist!==nothing
+        push!(hist[:functionalvalue], objval)
+        push!(hist[:computingtime], computingtime)
+        push!(hist[:time], time() - tinit)
+        push!(hist[:primres], primres)
+        push!(hist[:dualres], dualres)
+        push!(hist[:residual], sqrt(primres^2+dualres^2))
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+    end
 
     if (callback!==nothing)
         callback(pb, x, hist)
@@ -124,11 +129,16 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
     x_old = zeros(Float64, nscenarios, n)
     primres = dualres = Inf
 
-    (hist!==nothing) && (hist[:functionalvalue] = Float64[])
-    (hist!==nothing) && (hist[:computingtime] = Float64[])
-    (hist!==nothing) && (hist[:time] = Float64[])
-    (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    (hist!==nothing) && (hist[:logstep] = printstep*nscenarios)
+    if hist!==nothing
+        hist[:functionalvalue] = Float64[]
+        hist[:computingtime] = Float64[]
+        hist[:time] = Float64[]
+        hist[:primres] = Float64[]
+        hist[:dualres] = Float64[]
+        hist[:residual] = Float64[]
+        haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
+        hist[:logstep] = printstep*nscenarios
+    end
 
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer

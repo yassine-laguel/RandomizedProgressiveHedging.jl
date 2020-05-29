@@ -49,10 +49,13 @@ function randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nsce
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e\n" it nscenariostreated steplength residual objval
 
-    (hist!==nothing) && push!(hist[:functionalvalue], objval)
-    (hist!==nothing) && push!(hist[:computingtime], computingtime)
-    (hist!==nothing) && push!(hist[:time], time() - tinit)
-    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+    if hist !== nothing
+        push!(hist[:functionalvalue], objval)
+        push!(hist[:residual], residual)
+        push!(hist[:computingtime], computingtime)
+        push!(hist[:time], time() - tinit)
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+    end
 
     if (callback!==nothing)
         callback(pb, x_feas, hist)
@@ -143,11 +146,13 @@ function solve_randomized_sync(pb::Problem; ϵ_abs = 1e-8,
         scen_sampling_distrib = Categorical(qdistr)
     end
 
-    (hist!==nothing) && (hist[:functionalvalue] = Float64[])
-    (hist!==nothing) && (hist[:computingtime] = Float64[])
-    (hist!==nothing) && (hist[:time] = Float64[])
-    (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    (hist!==nothing) && (hist[:logstep] = printstep)
+    if hist!==nothing
+        hist[:functionalvalue] = Float64[]
+        hist[:computingtime] = Float64[]
+        hist[:time] = Float64[]
+        haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
+        hist[:logstep] = printstep
+    end
 
     subpbparams = OrderedDict{Symbol, Any}()
     subpbparams[:optimizer] = optimizer

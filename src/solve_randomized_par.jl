@@ -139,11 +139,14 @@ end
 
 
 function randpar_init_hist!(hist, printstep)
-    (hist!==nothing) && (hist[:functionalvalue] = Float64[])
-    (hist!==nothing) && (hist[:computingtime] = Float64[])
-    (hist!==nothing) && (hist[:time] = Float64[])
-    (hist!==nothing) && haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
-    (hist!==nothing) && (hist[:logstep] = printstep)
+    if hist!==nothing
+        hist[:functionalvalue] = Float64[]
+        hist[:residual] = Float64[]
+        hist[:computingtime] = Float64[]
+        hist[:time] = Float64[]
+        hist[:logstep] = printstep
+        haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
+    end
     return
 end
 
@@ -162,10 +165,13 @@ function randpar_print_log(pb, z, z_prev, x, printlev, residual, hist, it, nscen
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e\n" it nscenariostreated steplength residual objval
 
-    (hist!==nothing) && push!(hist[:functionalvalue], objval)
-    (hist!==nothing) && push!(hist[:computingtime], computingtime)
-    (hist!==nothing) && push!(hist[:time], time() - tinit)
-    (hist!==nothing) && haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+    if hist!==nothing
+        push!(hist[:functionalvalue], objval)
+        push!(hist[:residual], residual)
+        push!(hist[:computingtime], computingtime)
+        push!(hist[:time], time() - tinit)
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+    end
 
     if (callback!==nothing)
         callback(pb, x, hist)
