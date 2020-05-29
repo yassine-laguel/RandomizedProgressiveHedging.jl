@@ -148,6 +148,7 @@ function solve_randomized_sync(pb::Problem; ϵ_abs = 1e-8,
 
     if hist!==nothing
         hist[:functionalvalue] = Float64[]
+        hist[:residual] = Float64[]
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
         haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
