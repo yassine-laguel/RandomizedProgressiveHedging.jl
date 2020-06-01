@@ -144,6 +144,7 @@ function randasync_init_hist!(hist, printstep)
         hist[:residual] = Float64[]
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
+        hist[:nscenariostreated] = Float64[]
         hist[:maxdelay] = Int32[]
         hist[:logstep] = printstep
         haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
@@ -171,6 +172,7 @@ function randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hi
         push!(hist[:residual], residual)
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
+        push!(hist[:nscenariostreated], nscenariostreated)
         haskey(hist, :approxsol) && size(hist[:approxsol])==size(z_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
     end
 

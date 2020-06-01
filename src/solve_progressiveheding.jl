@@ -60,6 +60,7 @@ function ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, 
         push!(hist[:functionalvalue], objval)
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
+        push!(hist[:nscenariostreated], nscenariostreated)
         push!(hist[:primres], primres)
         push!(hist[:dualres], dualres)
         push!(hist[:residual], sqrt(primres^2+dualres^2))
@@ -133,6 +134,7 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
         hist[:functionalvalue] = Float64[]
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
+        hist[:nscenariostreated] = Float64[]
         hist[:primres] = Float64[]
         hist[:dualres] = Float64[]
         hist[:residual] = Float64[]

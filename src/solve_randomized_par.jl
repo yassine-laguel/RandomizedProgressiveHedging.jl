@@ -144,6 +144,7 @@ function randpar_init_hist!(hist, printstep)
         hist[:residual] = Float64[]
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
+        hist[:nscenariostreated] = Float64[]
         hist[:logstep] = printstep
         haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
     end
@@ -170,6 +171,7 @@ function randpar_print_log(pb, z, z_prev, x, printlev, residual, hist, it, nscen
         push!(hist[:residual], residual)
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
+        push!(hist[:nscenariostreated], nscenariostreated)
         haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
     end
 
