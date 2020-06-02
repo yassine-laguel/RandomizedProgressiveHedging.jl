@@ -45,7 +45,7 @@ end
 
 function randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, x_feas)
-    steplength = norm(x-y)
+    steplength = norm(pb, x-y)
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e\n" it nscenariostreated steplength residual objval
 
@@ -55,7 +55,7 @@ function randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nsce
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
         push!(hist[:nscenariostreated], nscenariostreated)
-        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - x_feas))
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x_feas) && push!(hist[:dist_opt], norm(pb, hist[:approxsol] - x_feas))
     end
 
     if (callback!==nothing)

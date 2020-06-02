@@ -163,7 +163,7 @@ end
 
 function randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, z_feas)
-    steplength = norm(step)
+    steplength = norm(pb, step)
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e  %3i  %3i\n" it nscenariostreated steplength residual objval τ delay
 
@@ -173,7 +173,7 @@ function randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hi
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
         push!(hist[:nscenariostreated], nscenariostreated)
-        haskey(hist, :approxsol) && size(hist[:approxsol])==size(z_feas) && push!(hist[:dist_opt], norm(hist[:approxsol] - z_feas))
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(z_feas) && push!(hist[:dist_opt], norm(pb, hist[:approxsol] - z_feas))
     end
 
     if (callback!==nothing)
@@ -373,7 +373,7 @@ function solve_randomized_async(pb::Problem{T}; ϵ_abs = 1e-8,
         (hist!==nothing) && push!(hist[:maxdelay], delay)
         if mod(it, printstep) == 0
             nonanticipatory_projection!(z_feas, pb, z)
-            objval = randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
+            objval = randasync_print_log(pb, z_feas, appliedstepsize * (y - x[x_coord, :]), τ, delay, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
             functionalval_diverging = objval > 3*initobjval
         end
     end

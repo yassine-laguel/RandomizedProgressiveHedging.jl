@@ -162,7 +162,7 @@ end
 
 function randpar_print_log(pb, z, z_prev, x, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, x)
-    steplength = norm(z-z_prev)
+    steplength = norm(pb, z-z_prev)
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e\n" it nscenariostreated steplength residual objval
 
@@ -172,7 +172,7 @@ function randpar_print_log(pb, z, z_prev, x, printlev, residual, hist, it, nscen
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
         push!(hist[:nscenariostreated], nscenariostreated)
-        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(pb, hist[:approxsol] - x))
     end
 
     if (callback!==nothing)

@@ -64,7 +64,7 @@ function ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, 
         push!(hist[:primres], primres)
         push!(hist[:dualres], dualres)
         push!(hist[:residual], sqrt(primres^2+dualres^2))
-        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(hist[:approxsol] - x))
+        haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(pb, hist[:approxsol] - x))
     end
 
     if (callback!==nothing)
