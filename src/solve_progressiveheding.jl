@@ -170,7 +170,7 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
         for id_scen in 1:nscenarios
             y[id_scen, :] = ph_subproblem_solve(pb, id_scen, u[id_scen, :], x[id_scen, :], μ, subpbparams)
         end
-        nscenariostreated += n
+        nscenariostreated += nscenarios
 
         # projection on non anticipatory subspace
         nonanticipatory_projection!(x, pb, y)
