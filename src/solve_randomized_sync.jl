@@ -45,7 +45,7 @@ end
 
 function randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, x_feas)
-    steplength = norm(pb, x-y)
+    steplength = norm(x-y)
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e\n" it nscenariostreated steplength residual objval
 

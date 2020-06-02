@@ -163,7 +163,7 @@ end
 
 function randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hist, it, nscenariostreated, computingtime, tinit, callback)
     objval = objective_value(pb, z_feas)
-    steplength = norm(pb, step)
+    steplength = norm(step)
 
     printlev>0 && @printf "%5i   %.2e       %.10e   %.10e     % .16e  %3i  %3i\n" it nscenariostreated steplength residual objval τ delay
 
