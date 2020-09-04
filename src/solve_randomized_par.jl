@@ -39,6 +39,10 @@ function randpar_remote_func(inwork::RemoteChannel, outres::RemoteChannel, param
                 @warn "Subproblem of scenario $(subpbtask.id_scenario) " primal_status(model) dual_status(model) termination_status(model)
             end
 
+            if :artificialdelay in fieldnames(typeof(subpbtask.scenario))
+                sleep(subpbtask.scenario.artificialdelay)
+            end
+
             put!(outres, (JuMP.value.(y), subpbtask.id_scenario))
         end
     catch e
@@ -138,10 +142,12 @@ function randpar_initialization!(z, pb, μ, subpbparams, printlev, work_channel,
 end
 
 
-function randpar_init_hist!(hist, printstep)
+function randpar_init_hist!(hist, printstep, nscenarios, n)
     if hist!==nothing
         hist[:functionalvalue] = Float64[]
         hist[:residual] = Float64[]
+        hist[:feasresidual] = Float64[]
+        hist[:yvectorsmem] = zeros(Float64, nscenarios, n)
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
         hist[:nscenariostreated] = Float64[]
@@ -169,6 +175,7 @@ function randpar_print_log(pb, z, z_prev, x, printlev, residual, hist, it, nscen
     if hist!==nothing
         push!(hist[:functionalvalue], objval)
         push!(hist[:residual], residual)
+        push!(hist[:feasresidual], get_feasresidual(x, hist[:yvectorsmem]))
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
         push!(hist[:nscenariostreated], nscenariostreated)
@@ -235,8 +242,7 @@ function solve_randomized_par(pb::Problem{T}; ϵ_abs = 1e-8,
                                               hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                               optimizer = Ipopt.Optimizer,
                                               optimizer_params = Dict{String, Any}("print_level"=>0),
-                                              callback=nothing,
-                                              kwargs...) where T<:AbstractScenario
+                                              callback=nothing) where T<:AbstractScenario
     display_algopb_stats(pb, "Randomized Progressive Hedging - parallel", printlev, ϵ_abs=ϵ_abs, ϵ_rel=ϵ_rel, μ=μ, c=c, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
@@ -269,7 +275,7 @@ function solve_randomized_par(pb::Problem{T}; ϵ_abs = 1e-8,
     qmin = minimum(scen_sampling_distrib.p)
 
 
-    randpar_init_hist!(hist, printstep*min(nworkers,pb.nscenarios))
+    randpar_init_hist!(hist, printstep*min(nworkers,pb.nscenarios), nscenarios, n)
 
     subpbparams = randpar_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 
@@ -325,6 +331,7 @@ function solve_randomized_par(pb::Problem{T}; ϵ_abs = 1e-8,
             y, id_scen = take!(results_channel)
 
             z[id_scen, :] += (y - x[id_scen, :])
+            hist!==nothing && (hist[:yvectorsmem][id_scen, :] = y)
         end
 
         nonanticipatory_projection!(x, pb, z)

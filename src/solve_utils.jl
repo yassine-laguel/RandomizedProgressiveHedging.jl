@@ -27,3 +27,7 @@ end
 function rand_hasconverged(pb, z, residual, ϵ_abs, ϵ_rel)
     return residual < ϵ_abs + ϵ_rel * norm(pb, z)
 end
+
+function get_feasresidual(x, y)
+    return maximum(norm(y[i, :]-x[i, :]) for i in size(y, 1))
+end

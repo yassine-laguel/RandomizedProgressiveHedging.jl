@@ -22,6 +22,10 @@ function randsync_subproblem_solve(pb::Problem, id_scen::ScenarioId, xz_scen, μ
         @warn "Subproblem of scenario $(id_scen) " primal_status(model) dual_status(model) termination_status(model)
     end
 
+    if :artificialdelay in fieldnames(typeof(pb.scenarios[id_scen]))
+        sleep(pb.scenarios[id_scen].artificialdelay)
+    end
+
     return JuMP.value.(y)
 end
 
@@ -52,6 +56,7 @@ function randsync_print_log(pb, x, y, x_feas, printlev, residual, hist, it, nsce
     if hist !== nothing
         push!(hist[:functionalvalue], objval)
         push!(hist[:residual], residual)
+        push!(hist[:feasresidual], get_feasresidual(x_feas, hist[:yvectorsmem]))
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
         push!(hist[:nscenariostreated], nscenariostreated)
@@ -116,8 +121,7 @@ function solve_randomized_sync(pb::Problem; ϵ_abs = 1e-8,
                                             hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                             optimizer = Ipopt.Optimizer,
                                             optimizer_params = Dict{String, Any}("print_level"=>0),
-                                            callback=nothing,
-                                            kwargs...)
+                                            callback=nothing)
     display_algopb_stats(pb, "Randomized Progressive Hedging - synchronous", printlev, ϵ_abs=ϵ_abs, ϵ_rel=ϵ_rel, μ=μ, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
@@ -150,6 +154,8 @@ function solve_randomized_sync(pb::Problem; ϵ_abs = 1e-8,
     if hist!==nothing
         hist[:functionalvalue] = Float64[]
         hist[:residual] = Float64[]
+        hist[:feasresidual] = Float64[]
+        hist[:yvectorsmem] = zeros(Float64, nscenarios, n)
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
         hist[:nscenariostreated] = Float64[]
@@ -199,6 +205,7 @@ function solve_randomized_sync(pb::Problem; ϵ_abs = 1e-8,
 
 
         # update residual if enough scenario have been treated since last residual eval
+        hist!==nothing && (hist[:yvectorsmem][id_scen, :] = y)
         if nscenariostreated > lastresidualupdate + residualupdate_interval
             residual = rand_getresidual(pb, z, z_old)
             copy!(z_old, z)

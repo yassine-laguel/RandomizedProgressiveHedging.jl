@@ -1,7 +1,7 @@
 using Test
 
 using Distributed
-workers() == Vector([1]) && addprocs(1)
+nprocs()==1 && addprocs(1)
 
 @show workers()
 

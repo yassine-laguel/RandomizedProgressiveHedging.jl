@@ -39,6 +39,10 @@ function randasync_remote_func(inwork::RemoteChannel, outres::RemoteChannel, par
                 @warn "Subproblem of scenario $(subpbtask.id_scenario) " primal_status(model) dual_status(model) termination_status(model)
             end
 
+            if :artificialdelay in fieldnames(typeof(subpbtask.scenario))
+                sleep(subpbtask.scenario.artificialdelay)
+            end
+
             put!(outres, (JuMP.value.(y), subpbtask.taskid))
         end
     catch e
@@ -138,10 +142,12 @@ function randasync_initialization!(z, pb, μ, subpbparams, printlev, work_channe
 end
 
 
-function randasync_init_hist!(hist, printstep)
+function randasync_init_hist!(hist, printstep, nscenarios, n)
     if hist!==nothing
         hist[:functionalvalue] = Float64[]
         hist[:residual] = Float64[]
+        hist[:feasresidual] = Float64[]
+        hist[:yvectorsmem] = zeros(Float64, nscenarios, n)
         hist[:computingtime] = Float64[]
         hist[:time] = Float64[]
         hist[:nscenariostreated] = Float64[]
@@ -170,6 +176,7 @@ function randasync_print_log(pb, z_feas, step, τ, delay, printlev, residual, hi
     if hist!==nothing
         push!(hist[:functionalvalue], objval)
         push!(hist[:residual], residual)
+        push!(hist[:feasresidual], get_feasresidual(z_feas, hist[:yvectorsmem]))
         push!(hist[:computingtime], computingtime)
         push!(hist[:time], time() - tinit)
         push!(hist[:nscenariostreated], nscenariostreated)
@@ -239,8 +246,7 @@ function solve_randomized_async(pb::Problem{T}; ϵ_abs = 1e-8,
                                                 hist::Union{OrderedDict{Symbol, Any}, Nothing}=nothing,
                                                 optimizer = Ipopt.Optimizer,
                                                 optimizer_params = Dict{String, Any}("print_level"=>0),
-                                                callback=nothing,
-                                                kwargs...) where T<:AbstractScenario
+                                                callback=nothing) where T<:AbstractScenario
     display_algopb_stats(pb, "Randomized Progressive Hedging - asynchronous", printlev, ϵ_abs=ϵ_abs, ϵ_rel=ϵ_rel, μ=μ, c=c, stepsize=stepsize, qdistr=qdistr, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
@@ -275,7 +281,7 @@ function solve_randomized_async(pb::Problem{T}; ϵ_abs = 1e-8,
     τ = ceil(Int, nworkers*1.05)                       # Upper bound on delay
     delay = 0
 
-    randasync_init_hist!(hist, printstep)
+    randasync_init_hist!(hist, printstep, nscenarios, n)
 
     subpbparams = randasync_defaultsubpbparams(pb, optimizer, optimizer_params, μ)
 
@@ -332,6 +338,9 @@ function solve_randomized_async(pb::Problem{T}; ϵ_abs = 1e-8,
         x_coord = taskid_to_xcoord[taskid]; delete!(taskid_to_xcoord, taskid)
         id_scen = taskid_to_idscen[taskid]; delete!(taskid_to_idscen, taskid)
         delay = it-taskid_to_launchit[taskid]; delete!(taskid_to_launchit, taskid)
+
+        ## Logging y vectors...
+        hist!==nothing && (hist[:yvectorsmem][id_scen, :] = y)
 
         ## z update
         τ = max(τ, delay)

@@ -22,6 +22,10 @@ function ph_subproblem_solve(pb::Problem, id_scen::ScenarioId, u_scen, x_scen, �
         @warn "Subproblem status: (scenario $id_scen) " primal_status(model) dual_status(model) termination_status(model)
     end
 
+    if :artificialdelay in fieldnames(typeof(pb.scenarios[id_scen]))
+        sleep(pb.scenarios[id_scen].artificialdelay)
+    end
+
     return JuMP.value.(y)
 end
 
@@ -50,7 +54,7 @@ function ph_initialization!(x, u, y, pb, μ, subpbparams, printlev)
     return
 end
 
-function ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
+function ph_print_log(pb, y, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
     objval = objective_value(pb, x)
     dot_xu = dot(pb, x, u)
 
@@ -64,6 +68,7 @@ function ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, 
         push!(hist[:primres], primres)
         push!(hist[:dualres], dualres)
         push!(hist[:residual], sqrt(primres^2+dualres^2))
+        push!(hist[:feasresidual], get_feasresidual(x, y))
         haskey(hist, :approxsol) && size(hist[:approxsol])==size(x) && push!(hist[:dist_opt], norm(pb, hist[:approxsol] - x))
     end
 
@@ -116,7 +121,7 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
                                                optimizer = Ipopt.Optimizer,
                                                optimizer_params = Dict{String, Any}("print_level"=>0),
                                                callback = nothing,
-                                               kwargs...)
+                                               seed = nothing)
     display_algopb_stats(pb, "Progressive Hedging", printlev, ϵ_abs=ϵ_abs, ϵ_rel=ϵ_rel, μ=μ, maxtime=maxtime, maxcomputingtime=maxcomputingtime, maxiter=maxiter)
 
     # Variables
@@ -138,6 +143,7 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
         hist[:primres] = Float64[]
         hist[:dualres] = Float64[]
         hist[:residual] = Float64[]
+        hist[:feasresidual] = Float64[]
         haskey(hist, :approxsol) && (hist[:dist_opt] = Float64[])
         hist[:logstep] = printstep*nscenarios
     end
@@ -156,7 +162,7 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
     nscenariostreated = nscenarios
 
     printlev>0 && @printf " it   #scenario      primal res        dual res            dot(x,u)   objective\n"
-    ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
+    ph_print_log(pb, y, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
 
     while (!ph_hasconverged(pb, x, primres, dualres, ϵ_abs, ϵ_rel) && it < maxiter
                                                     && time() - tinit < maxtime
@@ -186,13 +192,13 @@ function solve_progressivehedging(pb::Problem; ϵ_abs = 1e-8,
 
         # Print and logs
         if mod(it, printstep) == 0
-            ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
+            ph_print_log(pb, y, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
         end
     end
 
     ## Final print
     if mod(it, printstep) != 0
-        ph_print_log(pb, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
+        ph_print_log(pb, y, x, u, printlev, hist, it, nscenariostreated, primres, dualres, computingtime, tinit, callback)
     end
 
     printlev>0 && println("Computation time (s): ", computingtime)
