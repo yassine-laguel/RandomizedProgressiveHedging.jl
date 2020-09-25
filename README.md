@@ -1,6 +1,6 @@
 # RandomizedProgressiveHedging.jl
 
-This module aims to solve multistage stochastic problems by randomized versions of the progressive hedging algorithm. It comes with the companion paper "[Randomized Progressive Hedging methods for Multi-stage Stochastic Programming](https://hal.archives-ouvertes.fr/hal-02946615/document)" published Annals of Operations Research.
+This module aims to solve multistage stochastic problems by randomized versions of the progressive hedging algorithm. It comes with the companion paper "[Randomized Progressive Hedging methods for Multi-stage Stochastic Programming](https://hal.archives-ouvertes.fr/hal-02946615/document)" published in the journal Annals of Operations Research.
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
