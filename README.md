@@ -12,14 +12,14 @@ The package is installed with the following command:
 ```julia
 ]add RandomizedProgressiveHedging.jl
 ```
-GLPK, Ipopt are installed along as default solvers. Other solvers can of course be used, see [JuMP doc](http://www.juliaopt.org/JuMP.jl/v0.19.0/installation/#Getting-Solvers-1) for installation and `example/` scripts for use.
+GLPK and Ipopt are installed along as default solvers. Other solvers can of course be used, see [JuMP doc](http://www.juliaopt.org/JuMP.jl/v0.19.0/installation/#Getting-Solvers-1). for installation and `example/` scripts for use of the Juniper and Mosek solvers. If you don't have them already, simply `]add Juniper Mosek MosekTools`.
 
 ## Example
 
 Many example scripts are available in the `example/` folder. A good place to start is:
 - the [documentation](https://yassine-laguel.github.io/RandomizedProgressiveHedging.jl/stable)!
 - the [`examples/tutorial.ipynb`](https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl/blob/master/examples/tutorial.ipynb) jupyter notebook
-- the script [`examples/simple_example.jl`](https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl/blob/master/examples/tutorial.jl)
+- the script [`tutorial.jl`](https://github.com/yassine-laguel/RandomizedProgressiveHedging.jl/blob/master/examples/tutorial.jl)
 
 For distributed solve on local machine, launch e.g. julia as `julia -p 3` for 2 workers and a master thread. On a cluster, add workers with the package `Distributed` either `addprocs` on ssh connection, or use an adapted [cluster manager](https://github.com/JuliaParallel/ClusterManagers.jl).
 
